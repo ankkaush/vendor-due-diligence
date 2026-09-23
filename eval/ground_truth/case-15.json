@@ -1,0 +1,55 @@
+{
+  "case_id": "case-15",
+  "vendor_name": "Thornbury Cloud",
+  "scenario_summary": "Version conflict plus outdated evidence: SLA v2 (effective 2025-08-01) claims 99.99% uptime and hourly backups 'supported by an expanded security control set implemented since the prior SLA version,' but the only SOC report in the package covers an audit period ending 2023-06-30 — over two years before the new SLA took effect — and its tested backup control describes daily, not hourly, backups. The SOC report cannot evidence commitments the SLA itself says were implemented after the report's audit period.",
+  "difficulty": "hard",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-sla", "filename": "sla.md", "doc_type": "contract_sla", "domain": "security", "version": 2 },
+    { "document_id": "doc-soc", "filename": "soc-report-summary.md", "doc_type": "soc_report", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-15-c1",
+      "domain": "security",
+      "claim_type": "sla_metric",
+      "subject": "backup frequency",
+      "predicate": "backup_interval",
+      "value": "hourly",
+      "unit": null,
+      "temporal_scope": "effective 2025-08-01, 'since the prior SLA version'",
+      "source_document_id": "doc-sla",
+      "source_location": "Section 2",
+      "source_excerpt": "Thornbury commits to 99.99% monthly uptime and hourly encrypted backups of all production data, supported by an expanded security control set implemented since the prior SLA version.",
+      "evidence_requirement": "An audit or attestation covering the period after the expanded control set was implemented — the prior SOC report cannot evidence controls the SLA itself says post-date it.",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "Tested Controls and footer", "excerpt": "Backup: Production data is backed up on a daily basis to redundant storage... This report does not reflect any control changes made after 2023-06-30." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "outdated_evidence",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Two compounding problems: (1) the SOC report's audit period ended 2023-06-30, over two years before the SLA's 2025-08-01 effective date, and the report explicitly disclaims covering later changes; (2) even on its own terms, the SOC report's tested control describes daily backups, not the hourly backups the new SLA claims. The SLA's own text ('supported by an expanded security control set implemented since the prior SLA version') concedes that whatever evidences this claim postdates the only audit report in the package — so the attached SOC report cannot be treated as supporting evidence for this specific claim, even though a SOC report is present in the package. A system that accepts this because 'a SOC report is attached and it does test backups' has missed both the currency problem and the frequency mismatch."
+    },
+    {
+      "claim_id": "case-15-c2",
+      "domain": "security",
+      "claim_type": "sla_metric",
+      "subject": "prior SLA version",
+      "predicate": "superseded_by",
+      "value": "v2, effective 2025-08-01",
+      "unit": null,
+      "temporal_scope": "v1 dated 2023-11-01",
+      "source_document_id": "doc-sla",
+      "source_location": "header note",
+      "source_excerpt": "This SLA supersedes v1, dated 2023-11-01, which is not attached to this submission.",
+      "evidence_requirement": "The prior SLA version, to confirm what commitments actually changed between v1 and v2 — not provided in this package.",
+      "evidence_items": [],
+      "expected_verification_status": "unverified",
+      "issue_type": "version_conflict",
+      "is_planted_issue": true,
+      "expected_handling_notes": "The current SLA explicitly references a prior version it supersedes, but that prior version is not included — unlike case-07, where both versions are present and directly comparable, here the package is missing the comparison point entirely. This should be flagged as a gap (we cannot confirm what changed or whether the change is a genuine improvement or a downgrade in some unstated respect), distinct from case-07's direct numeric conflict between two present documents."
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

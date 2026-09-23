@@ -1,0 +1,85 @@
+{
+  "case_id": "case-08",
+  "vendor_name": "Quillan Data Co.",
+  "scenario_summary": "Cross-domain conflict: the security questionnaire claims all customer data is processed exclusively in the EU, but the sub-processor list (a privacy-domain document) discloses a US-based sub-processor with no transfer mechanism mentioned. Neither document alone is inconsistent with itself — the conflict only exists across the security/privacy boundary, which is exactly what a domain-scoped investigator, working from only its own routed documents, could structurally miss unless reconciliation deliberately checks across domains.",
+  "difficulty": "hard",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 },
+    { "document_id": "doc-subprocessors", "filename": "subprocessor-list.md", "doc_type": "subprocessor_list", "domain": "privacy_ai_governance", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-08-c1",
+      "domain": "security",
+      "claim_type": "data_practice",
+      "subject": "data residency",
+      "predicate": "processed_exclusively_in",
+      "value": "European Union",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "All customer data is processed and stored exclusively within European Union data centers. Quillan does not transfer or process customer data outside the EU.",
+      "evidence_requirement": "Consistency with the sub-processor list, which discloses where data actually flows in practice.",
+      "evidence_items": [
+        { "document_id": "doc-subprocessors", "location": "table row 2", "excerpt": "Lark Analytics Inc. | United States | Product usage analytics" }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "cross_domain_conflict",
+      "is_planted_issue": true,
+      "expected_handling_notes": "This is the case's central test. The security questionnaire's 'exclusively EU' claim is contradicted by a privacy-domain document (the sub-processor list) disclosing a US-based sub-processor with no stated transfer mechanism. A security-only investigator scoped strictly to security-routed documents would never see the sub-processor list at all and could not catch this on its own — detecting this conflict requires either cross-domain reconciliation after both investigators report, or a single agent holding the whole package. This is the deliberate test case for whether domain-scoped independence trades away cross-domain detection, and whether the reconciliation step correctly compensates for it."
+    },
+    {
+      "claim_id": "case-08-c2",
+      "domain": "privacy_ai_governance",
+      "claim_type": "subprocessor_disclosure",
+      "subject": "Lark Analytics Inc. sub-processor",
+      "predicate": "located_in",
+      "value": "United States",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-subprocessors",
+      "source_location": "table row 2",
+      "source_excerpt": "Lark Analytics Inc. | United States | Product usage analytics",
+      "evidence_requirement": "Consistency with the security questionnaire's data-residency claim.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 1, Q1", "excerpt": "All customer data is processed and stored exclusively within European Union data centers." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "cross_domain_conflict",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Same conflict as c1, viewed from the privacy side. Should be linked by the same expected_conflicts entry."
+    },
+    {
+      "claim_id": "case-08-c3",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Customer data at rest is encrypted using AES-256.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 2, Q2", "excerpt": "Customer data at rest is encrypted using AES-256." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    }
+  ],
+  "expected_conflicts": [
+    {
+      "conflict_id": "case-08-conflict-1",
+      "conflict_type": "cross_domain_conflict",
+      "claim_ids": ["case-08-c1", "case-08-c2"],
+      "description": "Security questionnaire claims data is processed exclusively in the EU; sub-processor list discloses a US-based sub-processor with no transfer mechanism mentioned."
+    }
+  ],
+  "injection_attempts": []
+}

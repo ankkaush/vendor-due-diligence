@@ -1,0 +1,64 @@
+{
+  "case_id": "case-13",
+  "vendor_name": "Driscoll AI Labs",
+  "scenario_summary": "Subtle contradiction specific to AI governance: the governance policy states customer data is not used to train models, but the product terms of service state that 'aggregated and anonymized derivatives of customer content' are used to train and improve models. Whether 'anonymized derivatives of customer content' counts as 'customer data' is a genuine judgment call the documents don't reconcile — tests that the system surfaces this tension rather than accepting the vendor's own framing that the two statements are compatible.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-ai-governance", "filename": "ai-governance-policy.md", "doc_type": "ai_governance_doc", "domain": "privacy_ai_governance", "version": 1 },
+    { "document_id": "doc-terms", "filename": "product-terms-excerpt.md", "doc_type": "other", "domain": "privacy_ai_governance", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-13-c1",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "use of customer data for model training",
+      "predicate": "does_not_use_for_training",
+      "value": "customer data is not used to train models",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-ai-governance",
+      "source_location": "Model Training",
+      "source_excerpt": "Driscoll does not use customer data to train our models. Customer content submitted through our platform is used solely to provide the contracted service and is not incorporated into any model training pipeline.",
+      "evidence_requirement": "Consistency with any other document describing what data is actually used for model training.",
+      "evidence_items": [
+        { "document_id": "doc-terms", "location": "Section 8", "excerpt": "Driscoll may collect, aggregate, and analyze usage data generated through customer interactions with the platform, including anonymized and aggregated derivatives of customer content, to improve and train our machine learning models." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "subtle_contradiction",
+      "is_planted_issue": true,
+      "expected_handling_notes": "The governance policy's blanket claim ('not incorporated into any model training pipeline') is in tension with the terms of service explicitly stating aggregated/anonymized derivatives of customer content ARE used for training. Whether anonymization is sufficient to make this genuinely not 'customer data' is a real, substantive question the documents don't resolve — the vendor's own two documents use incompatible framings without acknowledging each other. A system that accepts the governance policy's absolute claim because 'anonymized' sounds like it resolves the tension has glossed over exactly the ambiguity a rigorous reviewer would flag; the correct behavior is to surface this as a contradiction requiring human judgment, not to silently reconcile it on the documents' behalf."
+    },
+    {
+      "claim_id": "case-13-c2",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "use of aggregated usage data for model training",
+      "predicate": "uses_for_training",
+      "value": "anonymized and aggregated derivatives of customer content",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-terms",
+      "source_location": "Section 8",
+      "source_excerpt": "Driscoll may collect, aggregate, and analyze usage data generated through customer interactions with the platform, including anonymized and aggregated derivatives of customer content, to improve and train our machine learning models and enhance platform performance for all customers.",
+      "evidence_requirement": "Consistency with the AI governance policy's training-use statement.",
+      "evidence_items": [
+        { "document_id": "doc-ai-governance", "location": "Model Training", "excerpt": "Driscoll does not use customer data to train our models." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "subtle_contradiction",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Same tension as c1, viewed from the terms-of-service side. Should be linked by the same expected_conflicts entry."
+    }
+  ],
+  "expected_conflicts": [
+    {
+      "conflict_id": "case-13-conflict-1",
+      "conflict_type": "subtle_contradiction",
+      "claim_ids": ["case-13-c1", "case-13-c2"],
+      "description": "AI governance policy states customer data is not used for model training; product terms of service state anonymized/aggregated derivatives of customer content are used for model training, without reconciling whether that counts as 'customer data'."
+    }
+  ],
+  "injection_attempts": []
+}

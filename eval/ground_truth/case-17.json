@@ -1,0 +1,98 @@
+{
+  "case_id": "case-17",
+  "vendor_name": "Winnow Technologies",
+  "scenario_summary": "Second true-negative control case with a different vendor profile (includes AI governance documentation, unlike case-01). Contains one deliberately generic boilerplate statement ('implements appropriate technical and organizational measures...') that should be correctly labeled ambiguous — because it is genuinely unquantified and unverifiable — without being escalated as if it were a real conflict. Tests calibration: correct ambiguous-labeling is not the same as raising an alarm.",
+  "difficulty": "baseline",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 },
+    { "document_id": "doc-soc", "filename": "soc-report-summary.md", "doc_type": "soc_report", "domain": "security", "version": 1 },
+    { "document_id": "doc-ai-governance", "filename": "ai-governance-doc.md", "doc_type": "ai_governance_doc", "domain": "privacy_ai_governance", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-17-c1",
+      "domain": "security",
+      "claim_type": "certification",
+      "subject": "SOC 2 Type II examination",
+      "predicate": "has_completed",
+      "value": "Type II, Security",
+      "unit": null,
+      "temporal_scope": "audit period 2025-01-01 to 2025-06-30",
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "Winnow has completed a SOC 2 Type II examination covering the Security trust service criterion.",
+      "evidence_requirement": "SOC 2 report confirming Type II scope and an unqualified opinion.",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "header", "excerpt": "Report type: SOC 2 Type II; Trust service criteria: Security; Auditor opinion: Unqualified" }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    },
+    {
+      "claim_id": "case-17-c2",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest and in transit",
+      "predicate": "uses_algorithm_and_protocol",
+      "value": "AES-256 at rest, TLS 1.2+ in transit",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Data at rest is encrypted using AES-256. Data in transit is protected using TLS 1.2 or higher.",
+      "evidence_requirement": "Independent confirmation via the SOC report's tested controls.",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "Tested Controls", "excerpt": "Encryption at rest: Customer data is encrypted using AES-256... Encryption in transit: TLS 1.2 or higher is enforced on customer-facing endpoints." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    },
+    {
+      "claim_id": "case-17-c3",
+      "domain": "privacy_ai_governance",
+      "claim_type": "policy_statement",
+      "subject": "responsible AI commitment",
+      "predicate": "implements",
+      "value": "appropriate technical and organizational measures",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-ai-governance",
+      "source_location": "Responsible AI Statement",
+      "source_excerpt": "Winnow is committed to responsible AI development and implements appropriate technical and organizational measures to ensure the security and integrity of any AI-assisted features on our platform.",
+      "evidence_requirement": "None — this is generic boilerplate that names no specific measure and cannot be checked against a concrete standard.",
+      "evidence_items": [],
+      "expected_verification_status": "ambiguous",
+      "issue_type": "ambiguous_wording",
+      "is_planted_issue": true,
+      "expected_handling_notes": "This is the calibration test for this case: the statement is genuinely vague and unverifiable (what measures, specifically?), so 'ambiguous' is the correct label — but it should not be escalated with the same urgency as a real contradiction or a missing-evidence claim tied to a specific commitment. It is also immediately followed by a much more concrete, easily verified claim (c4) in the same document, which the system must not let this ambiguity bleed into."
+    },
+    {
+      "claim_id": "case-17-c4",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "AI model training on customer data",
+      "predicate": "does_not_operate_or_train",
+      "value": "no AI-assisted features offered; no models trained on customer data",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-ai-governance",
+      "source_location": "Model Training",
+      "source_excerpt": "Winnow does not offer AI-assisted features at this time and does not operate or train any machine learning models on customer data.",
+      "evidence_requirement": "None beyond the document itself.",
+      "evidence_items": [
+        { "document_id": "doc-ai-governance", "location": "Model Training", "excerpt": "Winnow does not offer AI-assisted features at this time and does not operate or train any machine learning models on customer data." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "A concrete, specific, checkable claim immediately following the vague c3 in the same document — included specifically so the case tests that vagueness in one claim doesn't cause the system to either over-trust or over-doubt an adjacent, unrelated, specific claim."
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

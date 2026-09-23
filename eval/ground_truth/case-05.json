@@ -1,0 +1,57 @@
+{
+  "case_id": "case-05",
+  "vendor_name": "Cartwell Analytics",
+  "scenario_summary": "Ambiguous wording, deliberately NOT a contradiction: the privacy policy uses vague, unquantified retention language ('as needed for business purposes... no longer than necessary'), while the DPA separately states a concrete 45-day period and explicitly says it is consistent with the policy. Tests that a system doesn't over-flag vague language as a conflict when a human would recognize it as compatible, unquantified phrasing rather than a competing number.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-privacy-policy", "filename": "privacy-policy.md", "doc_type": "privacy_policy", "domain": "privacy_ai_governance", "version": 1 },
+    { "document_id": "doc-dpa", "filename": "dpa.md", "doc_type": "dpa", "domain": "privacy_ai_governance", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-05-c1",
+      "domain": "privacy_ai_governance",
+      "claim_type": "policy_statement",
+      "subject": "data retention duration",
+      "predicate": "retention_basis",
+      "value": "as needed for business purposes, no longer than necessary",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-privacy-policy",
+      "source_location": "Data Retention",
+      "source_excerpt": "We retain customer personal data as needed for business purposes, and generally no longer than necessary to fulfill the purposes for which it was collected, in accordance with our contractual commitments to customers.",
+      "evidence_requirement": "None — this claim is inherently unquantified and cannot be checked against a specific number; it can only be judged for whether it is compatible with other stated commitments.",
+      "evidence_items": [
+        { "document_id": "doc-dpa", "location": "Section 4", "excerpt": "Cartwell shall delete all customer personal data within 45 days, consistent with the retention commitments described in Cartwell's Privacy Policy." }
+      ],
+      "expected_verification_status": "ambiguous",
+      "issue_type": "ambiguous_wording",
+      "is_planted_issue": true,
+      "expected_handling_notes": "This is the key judgment call in the case: the policy's vague language does not state a period, but it also does not conflict with the DPA's 45-day figure — 'no longer than necessary' is compatible with 45 days being the operationalized value, and the DPA explicitly cross-references the policy as consistent. The correct label is 'ambiguous' (the policy statement alone is unverifiable/unquantified), NOT 'contradicted'. A system that flags this pair as a direct_contradiction because the policy 'doesn't match' 45 days exactly has produced a false positive and failed this case — contrast directly with case-02, where the two retention figures are both concrete and genuinely incompatible."
+    },
+    {
+      "claim_id": "case-05-c2",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "data retention after termination",
+      "predicate": "retention_period",
+      "value": "45",
+      "unit": "days",
+      "temporal_scope": "upon termination",
+      "source_document_id": "doc-dpa",
+      "source_location": "Section 4",
+      "source_excerpt": "Cartwell shall delete all customer personal data within 45 days, consistent with the retention commitments described in Cartwell's Privacy Policy.",
+      "evidence_requirement": "None beyond the DPA itself.",
+      "evidence_items": [
+        { "document_id": "doc-dpa", "location": "Section 4", "excerpt": "Cartwell shall delete all customer personal data within 45 days." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

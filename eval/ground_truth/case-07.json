@@ -1,0 +1,64 @@
+{
+  "case_id": "case-07",
+  "vendor_name": "Brindle Cloud",
+  "scenario_summary": "Version conflict: two DPA versions are both included in the package (v1, effective 2024-01-10, 30-day retention; v2, effective 2025-06-01, 60-day retention) with no changelog or note explaining or superseding the earlier figure. Tests whether document versioning is tracked and whether the system recognizes this as a package-level inconsistency rather than silently preferring whichever document it reads last.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-dpa-v1", "filename": "dpa-v1.md", "doc_type": "dpa", "domain": "privacy_ai_governance", "version": 1 },
+    { "document_id": "doc-dpa-v2", "filename": "dpa-v2.md", "doc_type": "dpa", "domain": "privacy_ai_governance", "version": 2 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-07-c1",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "data retention after termination (v1)",
+      "predicate": "retention_period",
+      "value": "30",
+      "unit": "days",
+      "temporal_scope": "effective 2024-01-10",
+      "source_document_id": "doc-dpa-v1",
+      "source_location": "Section 4",
+      "source_excerpt": "Upon termination, Brindle shall delete all customer personal data within 30 days.",
+      "evidence_requirement": "Consistency with any other version of this same document in the package.",
+      "evidence_items": [
+        { "document_id": "doc-dpa-v2", "location": "Section 4", "excerpt": "Upon termination, Brindle shall delete all customer personal data within 60 days." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "version_conflict",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Both DPA versions are present in the same package with different retention figures and no reconciling changelog. A correct system should not silently treat the later-dated document (v2) as automatically authoritative and discard v1's figure without comment — the absence of a changelog explaining the change is itself part of what should be flagged to the human reviewer, since it's unclear whether v2 is a deliberate policy change or an error."
+    },
+    {
+      "claim_id": "case-07-c2",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "data retention after termination (v2)",
+      "predicate": "retention_period",
+      "value": "60",
+      "unit": "days",
+      "temporal_scope": "effective 2025-06-01",
+      "source_document_id": "doc-dpa-v2",
+      "source_location": "Section 4",
+      "source_excerpt": "Upon termination, Brindle shall delete all customer personal data within 60 days.",
+      "evidence_requirement": "Consistency with any other version of this same document in the package.",
+      "evidence_items": [
+        { "document_id": "doc-dpa-v1", "location": "Section 4", "excerpt": "Upon termination, Brindle shall delete all customer personal data within 30 days." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "version_conflict",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Same conflict as c1, viewed from the newer version. Both should be linked by the same expected_conflicts entry."
+    }
+  ],
+  "expected_conflicts": [
+    {
+      "conflict_id": "case-07-conflict-1",
+      "conflict_type": "version_conflict",
+      "claim_ids": ["case-07-c1", "case-07-c2"],
+      "description": "Two DPA versions in the same package state different retention periods (30 vs. 60 days) with no changelog or note reconciling the change."
+    }
+  ],
+  "injection_attempts": []
+}

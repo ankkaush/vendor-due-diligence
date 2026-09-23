@@ -1,0 +1,97 @@
+{
+  "case_id": "case-04",
+  "vendor_name": "Helion Software",
+  "scenario_summary": "Missing evidence: the questionnaire claims an annual third-party penetration test, but no pentest report, attestation, or SOC report mentioning testing is included anywhere in the package. Tests that a plausible, specific claim isn't accepted just because it's stated confidently and the rest of the package is credible.",
+  "difficulty": "baseline",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 },
+    { "document_id": "doc-dpa", "filename": "dpa.md", "doc_type": "dpa", "domain": "privacy_ai_governance", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-04-c1",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "penetration testing",
+      "predicate": "performed_with_frequency",
+      "value": "annual",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "Helion engages a third-party firm to perform an annual penetration test of our production environment.",
+      "evidence_requirement": "A pentest report, attestation letter, or SOC report tested-control entry confirming testing was actually performed, by whom, and when.",
+      "evidence_items": [],
+      "expected_verification_status": "unverified",
+      "issue_type": "missing_evidence",
+      "is_planted_issue": true,
+      "expected_handling_notes": "No attestation, report, or third-party confirmation of any kind is present in the package — only the questionnaire's own assertion. This should be flagged unverified/missing_evidence, not accepted as supported simply because the claim is specific and plausible-sounding, and not silently ignored because the rest of the package (c2, c3, c4) is credible."
+    },
+    {
+      "claim_id": "case-04-c2",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Customer data at rest is encrypted using AES-256.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 2, Q2", "excerpt": "Customer data at rest is encrypted using AES-256." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "No independent SOC/attestation document exists in this package to corroborate this specific claim either, but nothing contradicts it, and self-attestation is treated as baseline support in the absence of a contradicting or explicitly-required-independent-evidence signal — same treatment as case-02-c3. Contrast with c1, where the claim itself (an annual third-party activity) is exactly the kind of assertion that calls for independent corroboration, which is absent."
+    },
+    {
+      "claim_id": "case-04-c3",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "production access control",
+      "predicate": "requires",
+      "value": "MFA and role-based access control",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 3, Q3",
+      "source_excerpt": "Production access requires multi-factor authentication and is limited to engineering personnel via role-based access control.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 3, Q3", "excerpt": "Production access requires multi-factor authentication and is limited to engineering personnel via role-based access control." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    },
+    {
+      "claim_id": "case-04-c4",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "data retention after termination",
+      "predicate": "retention_period",
+      "value": "45",
+      "unit": "days",
+      "temporal_scope": "upon termination",
+      "source_document_id": "doc-dpa",
+      "source_location": "Section 4",
+      "source_excerpt": "Upon termination, Helion shall delete all customer personal data within 45 days.",
+      "evidence_requirement": "None beyond the DPA itself.",
+      "evidence_items": [
+        { "document_id": "doc-dpa", "location": "Section 4", "excerpt": "Upon termination, Helion shall delete all customer personal data within 45 days." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

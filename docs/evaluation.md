@@ -122,7 +122,27 @@ the same template.
 
 ## Cost ceiling
 
-Set after Phase 6 baseline measurement, not before (decision #11). Expected
-cost/case, worst-case cost/case, and total evaluation-run cost are estimated
-from real token usage once the baseline exists, then an explicit ceiling is
-set and enforced (not merely reported) before the full evaluation run.
+**Hard constraint: $0.50 total Anthropic API spend for the entire project,
+never exceeded (ADR-009).** This supersedes the earlier, looser framing of
+decision #11 with a specific number and an explicit spend discipline:
+
+- All development, unit, and integration testing uses a mocked LLM client
+  — zero real API calls before a deliberate evaluation checkpoint.
+- The first real call is one tiny one-case smoke test, run only after its
+  expected cost is reviewed and approved (see `eval/COST_LOG.md`).
+- Model selection is decided at that point from measured real cost and
+  then-current pricing, not assumed in advance (ADR-009) — the constraint
+  is the $0.50 total, not a standing preference for the cheapest model.
+- Each real evaluation pass (baseline, then multi-agent) runs once, after
+  full validation against mocks.
+- Actual spend is tracked in `eval/COST_LOG.md` from the first real call
+  onward, not just checked against a ceiling after the fact.
+
+Illustrative sizing (from the built exemplar cases, to be replaced by
+measured numbers from the smoke test): one full comparison pass — baseline
+plus both investigators plus re-investigation, across all 18 cases — is
+roughly 60 calls / ~75k input + ~30k output tokens, which is a small
+fraction of $0.50 on a cheap-tier model and would exceed the entire budget
+on a flagship-tier model. This is why model choice is deferred to measured
+data rather than fixed now (ADR-009), even though it will likely land on
+the cheapest suitable tier in practice.

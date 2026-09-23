@@ -1,0 +1,57 @@
+{
+  "case_id": "case-09",
+  "vendor_name": "Vantree Technologies",
+  "scenario_summary": "Misleading wording: the whitepaper markets 'bank-grade encryption... to the highest industry standard' without specifying any algorithm or protocol, while the technical questionnaire elsewhere reveals TLS 1.0 (a deprecated, known-weak protocol) is still supported on customer-facing endpoints. The marketing claim, read against the technical detail, is actively misleading rather than merely vague.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-whitepaper", "filename": "security-whitepaper.md", "doc_type": "security_whitepaper", "domain": "security", "version": 1 },
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-09-c1",
+      "domain": "security",
+      "claim_type": "policy_statement",
+      "subject": "overall encryption standard",
+      "predicate": "meets_standard",
+      "value": "bank-grade, highest industry standard",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-whitepaper",
+      "source_location": "Encryption",
+      "source_excerpt": "Vantree protects customer data with bank-grade encryption at every layer of our platform, giving customers confidence that their data is secured to the highest industry standard.",
+      "evidence_requirement": "Technical detail (specific protocols/algorithms in use) consistent with the implied claim of top-tier, current encryption practice across the platform.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 1, Q1", "excerpt": "For backward compatibility with certain legacy enterprise clients, Vantree supports TLS 1.0 and TLS 1.2 on customer-facing endpoints. TLS 1.0 support is scheduled for deprecation in a future release." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "misleading_wording",
+      "is_planted_issue": true,
+      "expected_handling_notes": "'Bank-grade encryption... highest industry standard' is unverifiable as a standalone phrase (it names no standard), but the questionnaire's own technical detail reveals TLS 1.0 — a protocol version deprecated industry-wide for known weaknesses — is still actively supported. Read together, the marketing language is misleading rather than merely vague: it implies a standard the vendor's own more specific disclosure contradicts. Distinguish from case-05, where vague language was genuinely compatible with the more specific claim; here the more specific claim actively undercuts the vague one."
+    },
+    {
+      "claim_id": "case-09-c2",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q2",
+      "source_excerpt": "Data at rest is encrypted using AES-256.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 1, Q2", "excerpt": "Data at rest is encrypted using AES-256." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "At-rest encryption itself is not implicated in the TLS-in-transit issue found in c1 — the two should not be conflated."
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

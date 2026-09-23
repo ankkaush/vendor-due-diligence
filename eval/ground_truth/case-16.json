@@ -1,0 +1,74 @@
+{
+  "case_id": "case-16",
+  "vendor_name": "Calder Systems",
+  "scenario_summary": "Combines two distinct failure modes deliberately kept separate: ambiguous wording (sub-processor vetting described only as 'per internal policy,' with no substantive detail on what the vetting actually checks, even though the policy itself isn't the missing piece) and missing evidence (a named retention policy document is explicitly referenced as 'available upon request' but never provided, and no DPA exists in the package either).",
+  "difficulty": "hard",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-subprocessors", "filename": "subprocessor-list.md", "doc_type": "subprocessor_list", "domain": "privacy_ai_governance", "version": 1 },
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-16-c1",
+      "domain": "privacy_ai_governance",
+      "claim_type": "subprocessor_disclosure",
+      "subject": "sub-processor vetting process",
+      "predicate": "vetting_basis",
+      "value": "per internal policy",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-subprocessors",
+      "source_location": "footer",
+      "source_excerpt": "All sub-processors are vetted per internal policy prior to engagement.",
+      "evidence_requirement": "None specific — this claim is judged on its own wording, not against a missing document, since no specific policy document is named or promised.",
+      "evidence_items": [],
+      "expected_verification_status": "ambiguous",
+      "issue_type": "ambiguous_wording",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Unlike case-16-c2 below, no specific document is referenced by name here — 'per internal policy' is just vague on substance (what does the vetting actually check: security posture? data handling practices? contractual terms?). This should be labeled ambiguous, not missing_evidence, because there is no specific missing artifact to point to — the wording itself is the problem, distinct from c2 where a named document was promised and withheld."
+    },
+    {
+      "claim_id": "case-16-c2",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "data retention following termination",
+      "predicate": "governed_by",
+      "value": "vendor's data retention policy (referenced, not provided)",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Data is retained and deleted in accordance with our data retention policy. Our data retention policy is available upon request.",
+      "evidence_requirement": "The named data retention policy document, or a DPA stating equivalent commitments — neither is present in this package.",
+      "evidence_items": [],
+      "expected_verification_status": "unverified",
+      "issue_type": "missing_evidence",
+      "is_planted_issue": true,
+      "expected_handling_notes": "A specific document is explicitly referenced by name ('our data retention policy') and explicitly withheld ('available upon request'), and no DPA is present either to substitute for it. This is missing_evidence, distinct from c1's ambiguous_wording — the difference is whether a specific promised artifact is absent (here) versus the wording itself simply being too vague to check against anything (c1)."
+    },
+    {
+      "claim_id": "case-16-c3",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "Customer data at rest is encrypted using AES-256.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 1, Q1", "excerpt": "Customer data at rest is encrypted using AES-256." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

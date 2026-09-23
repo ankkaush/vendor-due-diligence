@@ -1,0 +1,57 @@
+{
+  "case_id": "case-03",
+  "vendor_name": "Aravex Systems",
+  "scenario_summary": "Subtle contradiction: the whitepaper claims SOC 2 Type II certification demonstrating 'continued operating effectiveness... over time,' but the attached report is explicitly Type I — a point-in-time design assessment with no operating-effectiveness opinion and no prior-period history. Requires recognizing that Type I and Type II are materially different claims, not surface keyword matching on 'SOC 2'.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-whitepaper", "filename": "security-whitepaper.md", "doc_type": "security_whitepaper", "domain": "security", "version": 1 },
+    { "document_id": "doc-soc", "filename": "soc-report-summary.md", "doc_type": "soc_report", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-03-c1",
+      "domain": "security",
+      "claim_type": "certification",
+      "subject": "SOC 2 certification type and history",
+      "predicate": "has_maintained",
+      "value": "Type II, demonstrating continued operating effectiveness over time",
+      "unit": null,
+      "temporal_scope": "ongoing / historical",
+      "source_document_id": "doc-whitepaper",
+      "source_location": "Our Certification",
+      "source_excerpt": "Aravex has maintained SOC 2 Type II certification, demonstrating the continued operating effectiveness of our security program over time.",
+      "evidence_requirement": "A SOC 2 report confirming Type II scope (an operating-effectiveness opinion over an audit period), ideally with prior-period history supporting 'maintained... over time'.",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "header and Note on scope", "excerpt": "Report type: SOC 2 Type I... This report expresses an opinion on whether Aravex's controls were suitably designed as of the report date. It does not express an opinion on the operating effectiveness of those controls over any period of time. This is Aravex's first SOC 2 examination; no prior-period report exists." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "subtle_contradiction",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Type I and Type II are materially different: Type I assesses design suitability at a single point in time, Type II assesses operating effectiveness over a period. The whitepaper's claim of 'Type II' and 'continued... over time' is contradicted by an attached report that is explicitly Type I, a first-time examination, with no operating-effectiveness opinion at all. A system that treats 'SOC 2' as satisfying 'SOC 2 Type II' because both documents mention SOC 2 has failed this case — the distinction is the entire point of the test."
+    },
+    {
+      "claim_id": "case-03-c2",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-whitepaper",
+      "source_location": "Encryption",
+      "source_excerpt": "All customer data at rest is encrypted using AES-256.",
+      "evidence_requirement": "Independent confirmation via the SOC report's tested controls (design-level confirmation is sufficient for this claim, unlike case-03-c1, since the whitepaper only claims the control exists, not that it has operated effectively over time).",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "Tested Controls", "excerpt": "Encryption at rest: Customer data is encrypted using AES-256. Design assessed as suitable as of the report date." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "Contrast with case-03-c1: this claim only asserts the control exists, which a Type I design assessment is sufficient evidence for. The issue in c1 is specifically the mismatched strength of claim (an operating-effectiveness/duration claim) versus the strength of evidence (a one-time design assessment), not that Type I evidence is inherently insufficient for every claim."
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

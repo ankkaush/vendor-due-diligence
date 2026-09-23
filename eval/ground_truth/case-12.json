@@ -1,0 +1,55 @@
+{
+  "case_id": "case-12",
+  "vendor_name": "Palisade Systems",
+  "scenario_summary": "Incomplete evidence package: only a security questionnaire and SOC report are provided; the DPA and privacy policy are explicitly noted as not included. A GDPR-compliance claim made in the questionnaire is consequently unverifiable at the package level, not because any document contradicts it, but because the category of document that could support it was never submitted.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 },
+    { "document_id": "doc-soc", "filename": "soc-report-summary.md", "doc_type": "soc_report", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-12-c1",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "GDPR compliance for EU customer data",
+      "predicate": "complies_with",
+      "value": "GDPR, including data subject access and deletion rights",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Yes, Palisade complies with GDPR requirements for EU customers, including supporting data subject access and deletion requests.",
+      "evidence_requirement": "A DPA and/or Privacy Policy describing the legal basis, data subject rights process, and retention/deletion mechanics that would substantiate a GDPR compliance claim.",
+      "evidence_items": [],
+      "expected_verification_status": "unverified",
+      "issue_type": "missing_evidence",
+      "is_planted_issue": true,
+      "expected_handling_notes": "This claim is domain-tagged privacy_ai_governance despite being sourced from the security questionnaire, and no privacy-domain document exists anywhere in the package to evidence it — the questionnaire itself notes the DPA and Privacy Policy were withheld. This should be reported as unverified due to package incompleteness, distinctly from a claim that has contradicting evidence (compare case-02) or that simply lacks corroboration despite the right document type being present (compare case-04). The synthesized report should be able to say 'the DPA and Privacy Policy were not provided in this submission' as a package-level gap, not just a per-claim footnote."
+    },
+    {
+      "claim_id": "case-12-c2",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "Customer data at rest is encrypted using AES-256.",
+      "evidence_requirement": "Independent confirmation via the SOC report's tested controls.",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "Tested Controls", "excerpt": "Encryption at rest: Customer data is encrypted using AES-256. Control operated effectively throughout the audit period." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "The security domain is well-evidenced in this package even though the privacy domain is not — the incompleteness is specific to the missing document types, not a blanket problem with the whole submission."
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}

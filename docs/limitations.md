@@ -16,6 +16,14 @@ These are deliberate scope decisions, not gaps discovered late:
   and Markdown are supported.
 - **Single LLM provider (Anthropic).** No multi-provider comparison or
   fallback.
+- **Hard $0.50 total API budget for the entire project (ADR-009).** Model
+  choice for the baseline and the multi-agent system is made from measured
+  cost at smoke-test time, not the most capable model available — this is
+  a disclosed resource constraint, not a claim that a more expensive model
+  would perform differently. The single-agent baseline's "strength" refers
+  to its architecture, prompt/context design, evidence-grounding rigor,
+  and evaluation methodology, all of which are independent of model tier
+  and held to the same standard regardless of budget.
 - **Single-reviewer auth model.** No multi-user roles, permissions, or
   organizational workflow beyond one reviewer persona.
 - **Not multi-tenant, not a SaaS product.** No billing, no account

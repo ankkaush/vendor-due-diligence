@@ -1,0 +1,57 @@
+{
+  "case_id": "case-06",
+  "vendor_name": "Ferro Systems",
+  "scenario_summary": "Outdated evidence: the questionnaire (dated 2025-10-15) claims 'current' SOC 2 Type II certification, but the attached report's audit period ended 2024-02-29 — over 19 months earlier, well past the ~12-month window a SOC report is normally considered current for, with no newer report or bridge letter provided.",
+  "difficulty": "moderate",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 },
+    { "document_id": "doc-soc", "filename": "soc-report-summary.md", "doc_type": "soc_report", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-06-c1",
+      "domain": "security",
+      "claim_type": "certification",
+      "subject": "SOC 2 Type II certification currency",
+      "predicate": "is_currently_certified",
+      "value": "current SOC 2 Type II",
+      "unit": null,
+      "temporal_scope": "as of questionnaire date, 2025-10-15",
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "Ferro maintains current SOC 2 Type II certification. See the attached report.",
+      "evidence_requirement": "A SOC 2 report whose audit period is recent enough (conventionally within about the last 12 months) to support a 'current' claim, or a bridge letter covering the gap.",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "header", "excerpt": "Audit period: 2023-09-01 to 2024-02-29" }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "outdated_evidence",
+      "is_planted_issue": true,
+      "expected_handling_notes": "The attached report's audit period ended over 19 months before the questionnaire date, well outside the window a SOC report is conventionally treated as 'current' for, and no bridge letter or newer report is provided. The claim of current certification is contradicted by the evidence's own staleness, not merely 'unverified' — the report exists and is attached, so this is a currency problem, not a missing-evidence problem. A system that accepts this because 'a SOC 2 Type II report is attached' without checking the audit period date has missed the actual test."
+    },
+    {
+      "claim_id": "case-06-c2",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "encryption at rest",
+      "predicate": "uses_algorithm",
+      "value": "AES-256",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Customer data at rest is encrypted using AES-256.",
+      "evidence_requirement": "Independent confirmation via the SOC report's tested controls (a design/operation claim, not a currency claim — the staleness issue in c1 is specific to the certification-currency assertion, not to whether AES-256 was accurately described as of that audit period).",
+      "evidence_items": [
+        { "document_id": "doc-soc", "location": "Tested Controls", "excerpt": "Encryption at rest: Customer data is encrypted using AES-256. Control operated effectively throughout the audit period." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "Supported as of the audit period covered — this claim doesn't carry the same 'current as of today' framing that c1 does, so the same staleness issue doesn't apply to it in the same way."
+    }
+  ],
+  "expected_conflicts": [],
+  "injection_attempts": []
+}
