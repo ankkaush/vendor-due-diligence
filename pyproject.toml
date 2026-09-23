@@ -20,10 +20,12 @@ dev = [
     "pre-commit>=3.7",
 ]
 # Evaluation-dataset tooling (Phase 3) — validates eval/ground_truth/*.json
-# against eval/schema/ground_truth.schema.json. Not a runtime dependency of
-# the application itself.
+# against eval/schema/ground_truth.schema.json, and the one-call smoke test
+# (ADR-009). Not a runtime dependency of the application itself, which gets
+# its own dependencies starting Phase 6.
 eval = [
     "jsonschema>=4.22",
+    "anthropic>=0.40",
 ]
 
 [tool.ruff]

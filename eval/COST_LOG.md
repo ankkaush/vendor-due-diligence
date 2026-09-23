@@ -8,19 +8,24 @@ static text and JSON, authored without any API calls.
 
 | Date | Purpose | Model | Input tokens | Output tokens | Cost (USD) | Running total | Remaining |
 |---|---|---|---|---|---|---|---|
-| — | *(no real API calls made yet)* | — | — | — | $0.00 | $0.00 | $0.50 |
+| 2026-09-23 | Smoke test attempt #1 (case-11) — **failed before inference**, HTTP 400: API key not scoped to a workspace (`anthropic-workspace-id` header required). No tokens processed. | claude-haiku-4-5-20251001 | 0 | 0 | $0.00 | $0.00 | $0.50 |
 
-## Before the next row is added
+Smoke-test plan was reviewed and approved per the prior conversation
+(case-11, real pricing sourced 2026-09-23: $1/$5 per MTok in/out for
+Haiku 4.5). Execution failed at the request-validation stage before any
+model inference occurred, so no cost was incurred — confirm this against
+the Anthropic Console usage page once the key issue is fixed, since this
+entry is inferred from the error type, not independently verified against
+billing.
 
-Per ADR-009, the first real call is a single one-case smoke test, and it
-does not happen until the project owner has explicitly reviewed:
+## Next step
 
-1. Which case is used and why.
-2. The candidate model(s) and current published pricing at the time.
-3. The expected token count and expected cost, estimated from the actual
-   case content.
-4. What happens if the measured cost differs meaningfully from the
-   estimate (see ADR-009 consequences).
+Fix the API key's workspace scoping (see chat), then re-run:
 
-That review has not happened yet — this ledger stays at $0.00 until it
-does.
+```bash
+python eval/smoke_test.py --i-have-reviewed-the-cost-estimate
+```
+
+No further review is required to retry the *same already-approved* case-11
+smoke test after fixing the key — the approval covered this specific call,
+not a new one.
