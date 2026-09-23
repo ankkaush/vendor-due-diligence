@@ -1,0 +1,107 @@
+{
+  "case_id": "case-02",
+  "vendor_name": "Solace Data Partners",
+  "scenario_summary": "Direct contradiction: the DPA commits to unqualified 30-day deletion of customer data after termination, but the Backup and Disaster Recovery Policy states backups (including offboarded accounts) are retained for 90 days with no stated exception reconciling the two. Tests basic direct schema-level contradiction detection between two documents in the same domain.",
+  "difficulty": "baseline",
+  "contains_injection": false,
+  "document_manifest": [
+    { "document_id": "doc-dpa", "filename": "dpa.md", "doc_type": "dpa", "domain": "privacy_ai_governance", "version": 1 },
+    { "document_id": "doc-backup-policy", "filename": "backup-and-disaster-recovery-policy.md", "doc_type": "other", "domain": "privacy_ai_governance", "version": 1 },
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 }
+  ],
+  "claims": [
+    {
+      "claim_id": "case-02-c1",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "customer data deletion after termination",
+      "predicate": "retention_period",
+      "value": "30",
+      "unit": "days",
+      "temporal_scope": "upon termination",
+      "source_document_id": "doc-dpa",
+      "source_location": "Section 4",
+      "source_excerpt": "Solace shall delete all customer personal data within 30 days of the effective termination date. No exceptions to this deletion timeline are specified in this Addendum.",
+      "evidence_requirement": "Consistency with any other document describing how long customer data actually persists in Solace's systems after termination.",
+      "evidence_items": [
+        { "document_id": "doc-backup-policy", "location": "Section 2", "excerpt": "Backups are retained on this schedule for all customer accounts, including accounts that have been offboarded, to support disaster-recovery and business-continuity requirements." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "direct_contradiction",
+      "is_planted_issue": true,
+      "expected_handling_notes": "The DPA states an unqualified 30-day deletion commitment with no stated exceptions, but the Backup and Disaster Recovery Policy explicitly retains data for terminated accounts for 90 days. A correct system flags this as a genuine contradiction requiring human resolution (e.g. does the DPA need a backup-retention carve-out, or does backup policy need to change), not as two independently 'supported' facts that happen to differ."
+    },
+    {
+      "claim_id": "case-02-c2",
+      "domain": "privacy_ai_governance",
+      "claim_type": "data_practice",
+      "subject": "backup retention for terminated accounts",
+      "predicate": "retention_period",
+      "value": "90",
+      "unit": "days",
+      "temporal_scope": "rolling, from backup creation",
+      "source_document_id": "doc-backup-policy",
+      "source_location": "Section 2-3",
+      "source_excerpt": "Full backups of all production databases, including customer data, are taken nightly and retained for 90 days... This policy applies uniformly and does not distinguish between active and terminated customer accounts.",
+      "evidence_requirement": "Consistency with the DPA's stated deletion commitment.",
+      "evidence_items": [
+        { "document_id": "doc-dpa", "location": "Section 4", "excerpt": "Solace shall delete all customer personal data within 30 days of the effective termination date. No exceptions to this deletion timeline are specified in this Addendum." }
+      ],
+      "expected_verification_status": "contradicted",
+      "issue_type": "direct_contradiction",
+      "is_planted_issue": true,
+      "expected_handling_notes": "Same underlying conflict as case-02-c1, viewed from the backup policy's side. Both claims should be linked by the same expected_conflicts entry (case-02-conflict-1) rather than graded as two unrelated findings."
+    },
+    {
+      "claim_id": "case-02-c3",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "transport encryption",
+      "predicate": "minimum_protocol_version",
+      "value": "TLS 1.2",
+      "unit": null,
+      "temporal_scope": null,
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 1, Q1",
+      "source_excerpt": "All data in transit is protected using TLS 1.2 or higher. Older protocol versions (SSLv3, TLS 1.0, TLS 1.1) are disabled on all customer-facing endpoints.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package — no independent technical attestation is attached to corroborate or refute it.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 1, Q1", "excerpt": "All data in transit is protected using TLS 1.2 or higher." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": "No SOC report or independent attestation is present in this package to corroborate this claim beyond the vendor's own questionnaire, but nothing in the package contradicts it either, and questionnaire self-attestation is treated as baseline supporting evidence in the absence of a contradicting or absent-evidence signal. Distinguish from case-01-c6 and case-04, where a claim's own evidence_requirement specifically calls for independent (non-self-reported) corroboration."
+    },
+    {
+      "claim_id": "case-02-c4",
+      "domain": "security",
+      "claim_type": "technical_control",
+      "subject": "administrative access control",
+      "predicate": "requires",
+      "value": "MFA and quarterly access review",
+      "unit": null,
+      "temporal_scope": "reviewed quarterly",
+      "source_document_id": "doc-questionnaire",
+      "source_location": "Section 2, Q2",
+      "source_excerpt": "Administrative access requires multi-factor authentication and is restricted to named personnel via role-based access control. Access grants are reviewed quarterly by the security team.",
+      "evidence_requirement": "None beyond the questionnaire itself in this package.",
+      "evidence_items": [
+        { "document_id": "doc-questionnaire", "location": "Section 2, Q2", "excerpt": "Administrative access requires multi-factor authentication and is restricted to named personnel via role-based access control." }
+      ],
+      "expected_verification_status": "supported",
+      "issue_type": null,
+      "is_planted_issue": false,
+      "expected_handling_notes": ""
+    }
+  ],
+  "expected_conflicts": [
+    {
+      "conflict_id": "case-02-conflict-1",
+      "conflict_type": "direct_contradiction",
+      "claim_ids": ["case-02-c1", "case-02-c2"],
+      "description": "DPA commits to unqualified 30-day deletion of customer data after termination; Backup and Disaster Recovery Policy retains backups for terminated accounts for 90 days with no stated reconciling exception."
+    }
+  ],
+  "injection_attempts": []
+}

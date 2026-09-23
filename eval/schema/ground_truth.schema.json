@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vendor-due-diligence.local/schema/ground_truth.schema.json",
+  "title": "Vendor Due-Diligence Evaluation Case — Ground Truth",
+  "description": "Ground truth for one synthetic vendor evidence package. Reuses the production Claim/EvidenceItem field shape (see docs/data-model.md) plus eval-only fields (issue_type, is_planted_issue, expected_handling_notes) per ADR-008. Ground truth uses human-readable quoted excerpts, not content hashes — hashing is a production-system integrity concern, not an authoring concern.",
+  "type": "object",
+  "required": [
+    "case_id",
+    "vendor_name",
+    "scenario_summary",
+    "difficulty",
+    "contains_injection",
+    "document_manifest",
+    "claims"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "type": "string",
+      "pattern": "^case-[0-9]{2}$"
+    },
+    "vendor_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Fictional vendor name only. Never a real company."
+    },
+    "scenario_summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "One to three sentences describing what this case is designed to test."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["baseline", "moderate", "hard"]
+    },
+    "contains_injection": {
+      "type": "boolean"
+    },
+    "document_manifest": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/document" }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "expected_conflicts": {
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/conflict" }
+    },
+    "injection_attempts": {
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/injection_attempt" }
+    }
+  },
+  "$defs": {
+    "document": {
+      "type": "object",
+      "required": ["document_id", "filename", "doc_type", "domain", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "document_id": { "type": "string", "minLength": 1 },
+        "filename": { "type": "string", "minLength": 1 },
+        "doc_type": {
+          "type": "string",
+          "enum": [
+            "security_questionnaire",
+            "security_whitepaper",
+            "soc_report",
+            "dpa",
+            "privacy_policy",
+            "ai_governance_doc",
+            "subprocessor_list",
+            "contract_sla",
+            "pentest_attestation",
+            "other"
+          ]
+        },
+        "domain": {
+          "type": "string",
+          "enum": ["security", "privacy_ai_governance", "both"]
+        },
+        "version": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": [
+        "claim_id",
+        "domain",
+        "claim_type",
+        "subject",
+        "predicate",
+        "value",
+        "source_document_id",
+        "source_location",
+        "source_excerpt",
+        "evidence_requirement",
+        "evidence_items",
+        "expected_verification_status",
+        "is_planted_issue"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "domain": {
+          "type": "string",
+          "enum": ["security", "privacy_ai_governance"]
+        },
+        "claim_type": {
+          "type": "string",
+          "enum": [
+            "certification",
+            "policy_statement",
+            "sla_metric",
+            "data_practice",
+            "subprocessor_disclosure",
+            "technical_control",
+            "other"
+          ]
+        },
+        "subject": { "type": "string", "minLength": 1 },
+        "predicate": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 },
+        "unit": { "type": ["string", "null"], "default": null },
+        "temporal_scope": { "type": ["string", "null"], "default": null },
+        "source_document_id": { "type": "string", "minLength": 1 },
+        "source_location": { "type": "string", "minLength": 1 },
+        "source_excerpt": { "type": "string", "minLength": 1 },
+        "evidence_requirement": { "type": "string", "minLength": 1 },
+        "evidence_items": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence_item" }
+        },
+        "expected_verification_status": {
+          "type": "string",
+          "enum": ["supported", "contradicted", "unverified", "ambiguous"]
+        },
+        "issue_type": {
+          "type": ["string", "null"],
+          "enum": [
+            "direct_contradiction",
+            "subtle_contradiction",
+            "missing_evidence",
+            "ambiguous_wording",
+            "outdated_evidence",
+            "version_conflict",
+            "cross_domain_conflict",
+            "misleading_wording",
+            null
+          ],
+          "default": null
+        },
+        "is_planted_issue": { "type": "boolean" },
+        "expected_handling_notes": { "type": "string", "default": "" }
+      }
+    },
+    "evidence_item": {
+      "type": "object",
+      "required": ["document_id", "location", "excerpt"],
+      "additionalProperties": false,
+      "properties": {
+        "document_id": { "type": "string", "minLength": 1 },
+        "location": { "type": "string", "minLength": 1 },
+        "excerpt": { "type": "string", "minLength": 1 }
+      }
+    },
+    "conflict": {
+      "type": "object",
+      "required": ["conflict_id", "conflict_type", "claim_ids", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "conflict_id": { "type": "string", "minLength": 1 },
+        "conflict_type": {
+          "type": "string",
+          "enum": [
+            "direct_contradiction",
+            "subtle_contradiction",
+            "cross_domain_conflict",
+            "version_conflict"
+          ]
+        },
+        "claim_ids": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string" }
+        },
+        "description": { "type": "string", "minLength": 1 }
+      }
+    },
+    "injection_attempt": {
+      "type": "object",
+      "required": ["injection_id", "document_id", "location", "injected_text", "expected_behavior"],
+      "additionalProperties": false,
+      "properties": {
+        "injection_id": { "type": "string", "minLength": 1 },
+        "document_id": { "type": "string", "minLength": 1 },
+        "location": { "type": "string", "minLength": 1 },
+        "injected_text": { "type": "string", "minLength": 1 },
+        "expected_behavior": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

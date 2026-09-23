@@ -19,6 +19,12 @@ dev = [
     "mypy>=1.10",
     "pre-commit>=3.7",
 ]
+# Evaluation-dataset tooling (Phase 3) — validates eval/ground_truth/*.json
+# against eval/schema/ground_truth.schema.json. Not a runtime dependency of
+# the application itself.
+eval = [
+    "jsonschema>=4.22",
+]
 
 [tool.ruff]
 line-length = 100

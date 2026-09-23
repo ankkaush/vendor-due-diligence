@@ -57,7 +57,11 @@ verification-reasoning quality.
 
 ## Ground-truth dataset
 
-~18 synthetic vendor evidence packages (3–5 documents each), each with an
+**Status: Phase 3a (ontology) complete. Phase 3b (case construction) in
+progress — 3 of 18 cases built as validated exemplars; see `eval/CASES.md`
+for the full plan and build status.**
+
+18 synthetic vendor evidence packages (3–5 documents each), each with an
 explicit ground-truth label file covering: supported claims, unsupported
 claims, direct contradictions, subtle contradictions, missing evidence,
 ambiguous wording, outdated/conflicting document versions, cross-domain
@@ -70,6 +74,51 @@ number would hide.
 
 Dataset construction (Phase 3a: ontology, Phase 3b: case construction) is
 completed **before** the single-agent baseline is implemented (Phase 6).
+
+### Ontology (Phase 3a)
+
+The ground-truth schema is formalized at
+[`eval/schema/ground_truth.schema.json`](../eval/schema/ground_truth.schema.json)
+(JSON Schema 2020-12) and reuses the production `Claim`/`EvidenceItem` field
+shape from `data-model.md`, plus eval-only fields per ADR-008: `issue_type`,
+`is_planted_issue`, `expected_handling_notes`. No numeric
+`expected_confidence` field — `expected_verification_status` (including
+`ambiguous`) is the sole graded label.
+
+Each case file also carries a `document_manifest`, an `expected_conflicts`
+array (linking ≥2 claim IDs with a `conflict_type`, for scoring
+contradiction-detection directly rather than inferring it from individual
+claim statuses), and an `injection_attempts` array (structurally separate
+from `claims`, since a planted injection isn't a vendor assertion to verify
+— it's an adversarial artifact with its own `expected_behavior`).
+
+[`eval/validate_ground_truth.py`](../eval/validate_ground_truth.py) checks
+every case file against the schema and additionally verifies referential
+integrity — every `source_document_id`, `evidence_item.document_id`,
+`expected_conflicts[].claim_ids`, and `injection_attempts[].document_id`
+must resolve to an id actually declared in that same case file. Both the
+schema check and the referential check were deliberately exercised against
+broken input (an invalid enum value, and a dangling document reference) to
+confirm they actually fail before being trusted to pass — the same
+discipline as the Phase 1 gitleaks test.
+
+Run it with:
+
+```bash
+pip install -e ".[eval]"
+python eval/validate_ground_truth.py
+```
+
+### Case plan (Phase 3b)
+
+See [`eval/CASES.md`](../eval/CASES.md) for the full 18-case matrix, the
+coverage check against every required failure-mode category, and build
+status. Cases 01 (clean baseline), 02 (direct contradiction), and 10
+(direct prompt injection) are built and passing validation — chosen first
+because they exercise the three structurally different shapes the ontology
+has to represent (an all-supported case, a claim-level contradiction, and a
+non-claim injection attempt) before the remaining 15 are produced against
+the same template.
 
 ## Cost ceiling
 
