@@ -43,6 +43,10 @@ AgentFinding → VerificationStatus → HumanDecision
 - **Idempotency is a schema-level constraint, not just application logic.**
   A partial unique index ensures at most one non-terminal `AgentRun` per
   `(case_id, agent_type)`.
+- **Externally-referenced entities use UUID primary keys**, not sequential
+  integers — `Case`, `EvidenceDocument`, and anything else addressable via a
+  URL or form field. This is defense-in-depth against ID enumeration even
+  though every route is auth-gated (see `threat-model.md` §3.1, `security.md`).
 
 ## State vs. business vs. evidence vs. agent state
 

@@ -32,3 +32,14 @@ being tested.
   as gaps, not resolved by fetching external corroboration.
 - If a genuine need for external verification emerges after Gate 6, it is
   scoped and threat-modeled as a deliberate addition — not assumed now.
+
+## Revisited at Phase 2 (2026-09-23)
+
+The full component-by-component threat model (`threat-model.md`) was
+completed after this ADR was first accepted. Revisiting it with that deeper
+analysis in hand does not change the decision — every new threat the deeper
+pass surfaced (XXE, cost blowout under retry/re-investigation, injection
+blast radius) would be made strictly worse by giving agents outbound network
+access, not better. SSRF specifically would turn "agent fetches a URL found
+in a document" into a live threat against internal infrastructure. ADR-003
+stands unchanged.
