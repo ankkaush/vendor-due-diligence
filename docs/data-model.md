@@ -1,6 +1,11 @@
 # Data Model
 
-**Status: approved design (Phase 4 target for implementation).**
+**Status: implemented (Phase 4).** Schema: [`app/db/models.py`](../app/db/models.py).
+Migration: [`alembic/versions/c28dd1c04d1e_initial_schema.py`](../alembic/versions/c28dd1c04d1e_initial_schema.py).
+Verified: migration up/down cycles cleanly; constraint and evidence-chain
+tests pass in [`tests/test_db/`](../tests/test_db/) against a real local
+Postgres (`docker compose up -d`, isolated per-project on port 5437 —
+never the production Supabase instance).
 
 ## Entities and lifecycle
 
@@ -47,6 +52,25 @@ AgentFinding → VerificationStatus → HumanDecision
   integers — `Case`, `EvidenceDocument`, and anything else addressable via a
   URL or form field. This is defense-in-depth against ID enumeration even
   though every route is auth-gated (see `threat-model.md` §3.1, `security.md`).
+- **`case.status` has no `SECURITY_RUNNING`/`PRIVACY_RUNNING` sub-states.**
+  `architecture.md`'s diagram shows these as a parallel-execution note, not
+  literal case states — per-agent progress lives on `AgentRun.status`
+  instead, which is exactly the workflow-state-vs-agent-state distinction
+  this table already draws.
+- **Append-only is a database trigger, not just a convention.**
+  `case_state_transitions`, `human_reviews`, and `audit_events` reject
+  UPDATE and DELETE at the database level (a `BEFORE UPDATE OR DELETE`
+  trigger raising an exception), regardless of which role issues the
+  query — verified directly in `tests/test_db/test_schema_constraints.py`
+  by actually attempting both and confirming both are refused.
+- **Decision #13 (max one re-investigation round) is a `UNIQUE(conflict_id)`
+  constraint** on `reinvestigations`, not application logic that could be
+  bypassed under pressure to "just try once more."
+- **Enum values are identical to `eval/schema/ground_truth.schema.json`**
+  wherever both describe the same concept (`doc_type`, `domain`,
+  `claim_type`, `verification_status`, `conflict_type`) — ADR-008's "ground
+  truth reuses the production schema" made literal, not just a stated
+  intention.
 
 ## State vs. business vs. evidence vs. agent state
 

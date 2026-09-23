@@ -1,0 +1,25 @@
+# Local development/test database only. Production uses Supabase Postgres
+# (ADR-005) — this container is never used outside this machine and is not
+# part of the deployed system. Isolated on port 5437 and a project-specific
+# container/volume name to avoid colliding with Postgres containers from
+# other projects on the same machine.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vendor-dd-db
+    environment:
+      POSTGRES_USER: vendor_dd
+      POSTGRES_PASSWORD: local_dev_only_not_a_real_secret
+      POSTGRES_DB: vendor_dd
+    ports:
+      - "5437:5432"
+    volumes:
+      - vendor_dd_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vendor_dd -d vendor_dd"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  vendor_dd_pgdata:

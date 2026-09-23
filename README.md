@@ -1,6 +1,7 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phase 1 (repository/security foundation) in progress. No application code yet.**
+**Status: early build — Phase 4 (data/evidence model) complete. Schema and
+migrations are real and tested; no agents, orchestrator, or API yet.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -65,11 +66,19 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pre-commit install
 cp .env.example .env   # then fill in real values — never commit .env
+
+docker compose up -d          # isolated local Postgres, port 5437
+alembic upgrade head          # apply the schema
+pytest tests/                 # 13 tests: constraints + full evidence chain
 ```
 
 `pre-commit install` wires up secret scanning (gitleaks) and linting to run
 on every commit. This is not optional for this repository — see
 [`docs/security.md`](docs/security.md).
+
+The local Postgres container is dev/test only, isolated by container name
+and port from anything else on the machine — production uses Supabase
+([ADR-005](docs/decisions/ADR-005-deployment-target.md)).
 
 ## License
 

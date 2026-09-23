@@ -4,13 +4,17 @@ version = "0.0.1"
 description = "Evidence-based vendor due-diligence verification under independent agent context boundaries — testing whether independent, domain-scoped AI investigators catch verification errors a strong single-agent baseline misses."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
 authors = [{ name = "Ankit Kaushik" }]
 
 # Runtime dependencies are added incrementally, phase by phase, as they are
-# actually needed (FastAPI/SQLAlchemy/Anthropic SDK etc. arrive in Phases
-# 5-9) — not speculatively declared ahead of the code that uses them.
-dependencies = []
+# actually needed — FastAPI/Anthropic SDK etc. arrive starting Phase 5/6.
+dependencies = [
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
+    "pydantic-settings>=2.4",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -35,6 +39,14 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# Alembic's own generator produces this exact style (Union/Sequence
+# imports, long single-line column defs) and re-flowing every migration
+# by hand each time buys nothing — migrations are quasi-generated and
+# rarely hand-edited again once applied. Everything else in the repo is
+# held to the full ruleset.
+"alembic/versions/*.py" = ["E501", "UP007", "UP035"]
+
 [tool.mypy]
 python_version = "3.11"
 warn_unused_ignores = true
@@ -43,3 +55,11 @@ disallow_untyped_defs = false
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+# Only the application package is installed as a distributable package.
+# eval/, alembic/, tests/, docs/ are used from the repo root directly (via
+# pytest's rootdir and alembic's own working-directory config), not
+# installed — an explicit include list, not automatic flat-layout
+# discovery, which fails here with multiple top-level directories present.
+include = ["app*"]
