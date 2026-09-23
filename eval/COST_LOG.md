@@ -8,6 +8,7 @@ no batching updates "for later."
 |---|---|---|---|---|---|---|---|
 | 2026-09-23 | Smoke test attempt #1 (case-11) — **failed before inference**, HTTP 400: API key not scoped to a workspace. No tokens processed. | claude-haiku-4-5-20251001 | 0 | 0 | $0.00 | $0.00 | $0.50 |
 | 2026-09-23 | Smoke test attempt #2 (case-11) — **succeeded**, new workspace-scoped key. | claude-haiku-4-5-20251001 | 455 | 356 | $0.002235 | $0.002235 | $0.497765 |
+| 2026-09-23 | Calibration #2 (case-01, 3 docs) — **succeeded**. | claude-haiku-4-5-20251001 | 1085 | 962 | $0.005895 | $0.008130 | $0.491870 |
 
 ### Findings from the successful smoke test
 
@@ -39,13 +40,65 @@ no batching updates "for later."
   evaluation metric (`evaluation.md`) — this smoke test is the first
   concrete evidence of why that metric earns its place.
 
-## Next step
+### Findings from calibration #2 (case-01)
 
-Full-run projection (~$0.23 for one baseline+multi-agent comparison pass
-across all 18 cases) is still based on rough per-call size estimates —
-one successful real data point is a good sanity check, not enough to
-trust the projection on its own, since case-11 is on the small end of
-the dataset. Recommend one more calibration call on a larger case
-(case-01: 3 docs, 6 claims) before committing to the full 61-call run —
-bringing total smoke-test spend to roughly half a cent, still trivial
-against the $0.50 ceiling.
+- **Input scaling confirmed and fit precisely.** With two real points
+  (case-11: 730 chars → 455 tokens; case-01: 3,210 chars incl. document
+  tags → 1,085 tokens), a linear model `input_tokens ≈ 270 + 0.254 × chars`
+  fits both exactly (2 points, 2 unknowns — this is a minimal fit, not
+  independent confirmation of linearity, but it's the best available
+  until a third, differently-sized data point exists).
+- **Claim extraction ran hotter than ground truth assumes.** Case-01's
+  ground truth defines 6 claims; the model returned 9, because it treated
+  the SOC report's and DPA's own statements as claims in their own right
+  (e.g. "SOC audit period dates," "sub-processor obligations"), not just
+  cross-references supporting the questionnaire's claims. This is a
+  second real instance of the extraction-granularity variance already
+  seen in case-11, now shown to inflate output token count too — the
+  output/input ratio (0.78 for case-11, 0.89 for case-01, averaging
+  ~0.83) already reflects this in the projection below, but the
+  underlying ontology mismatch (are a SOC report's own statements
+  "claims" or "evidence for the vendor's claims"?) is a real Phase 6
+  prompt-design question, not just a cost question — worth deciding
+  deliberately rather than letting it fall out of whatever the model
+  happens to do.
+- **Structured-output fencing recurred.** Same markdown-fence wrapping as
+  case-11, on a different, larger prompt. Confirms this is a systematic
+  model behavior, not a one-off fluke — reinforces ADR-010.
+- **No false-positive injection flag.** Case-01 has no planted injection;
+  `injection_detected: false` was correct.
+
+### Revised full-run projection (calibrated, not guessed)
+
+Using the fitted input model and measured output/input ratio (~0.83)
+against the actual document sizes of all 18 built cases, with the same
+60%-of-case-size assumption for domain-scoped investigator calls as
+before (still unverified — no real investigator-shaped call has been
+made) and the original rough estimate retained for the 7 re-investigation
+calls (also unmeasured):
+
+| Component | Calls | Input tok | Output tok | Cost |
+|---|---|---|---|---|
+| Baseline (1/case × 18) | 18 | ~10,300 | ~8,600 | ~$0.053 |
+| Investigators (2/case × 18) | 36 | ~16,250 | ~13,560 | ~$0.084 |
+| Re-investigation (unmeasured estimate) | 7 | ~3,500 | ~1,400 | ~$0.011 |
+| **Total, one full comparison pass** | **61** | | | **~$0.148** |
+
+**This revises the earlier $0.23 guess down to ~$0.15** — the original
+per-call size assumptions overestimated input tokens more than they
+underestimated output tokens. After both calibration calls
+($0.008130 spent), a ~$0.148 full run would leave **~$0.344 of the $0.50
+budget remaining**.
+
+Two things this projection still doesn't cover, flagged rather than
+hidden: no investigator-shaped call (domain-subset input) or
+re-investigation-shaped call has actually been measured — both legs are
+still extrapolated, not calibrated. If either turns out meaningfully
+different from these assumptions once Phase 7 exists, this projection
+should be revisited before running the full 61-call evaluation for real.
+
+## Discipline going forward
+
+No further real API calls without explicit review and approval, per
+ADR-009. The next real spend is expected to be the actual Phase 6/7
+evaluation run, not before.

@@ -27,3 +27,13 @@ the blueprint discussion.**
 Key boundary test to be written in Phase 7:
 `test_investigator_context_has_no_cross_agent_data_even_when_available` —
 see [`agent-boundaries.md`](agent-boundaries.md).
+
+Key structured-output test to be written in Phase 6
+([ADR-010](decisions/ADR-010-structured-output-enforcement.md)): a test
+confirming parsed output succeeds via the enforced structured-output
+mechanism (forced tool use / JSON schema) specifically, not via a
+defensive fence-stripping fallback catching what enforcement should have
+prevented. Motivated by two real smoke-test calls
+(`eval/COST_LOG.md`) both returning JSON wrapped in a markdown code fence
+despite an explicit prompt instruction not to — a real, reproduced
+failure mode, not a hypothetical one.

@@ -138,11 +138,17 @@ decision #11 with a specific number and an explicit spend discipline:
 - Actual spend is tracked in `eval/COST_LOG.md` from the first real call
   onward, not just checked against a ceiling after the fact.
 
-Illustrative sizing (from the built exemplar cases, to be replaced by
-measured numbers from the smoke test): one full comparison pass — baseline
-plus both investigators plus re-investigation, across all 18 cases — is
-roughly 60 calls / ~75k input + ~30k output tokens, which is a small
-fraction of $0.50 on a cheap-tier model and would exceed the entire budget
-on a flagship-tier model. This is why model choice is deferred to measured
-data rather than fixed now (ADR-009), even though it will likely land on
-the cheapest suitable tier in practice.
+**Calibrated projection (measured, not illustrative)** — two real
+smoke-test calls (`eval/COST_LOG.md`: case-11 and case-01, both on Claude
+Haiku 4.5 at real sourced pricing of $1/$5 per MTok in/out) were used to
+fit an input-size model and an output/input ratio, then applied to all 18
+built cases' actual document sizes. One full comparison pass — baseline
+plus both investigators plus bounded re-investigation, 61 calls total —
+projects to **~$0.148**, down from an earlier rough guess of ~$0.23; the
+original per-call size assumptions overestimated input tokens more than
+they underestimated output. After the $0.008130 already spent on
+calibration, this would leave roughly **$0.344 of the $0.50 budget**.
+This remains an extrapolation for the investigator and re-investigation
+legs specifically (no domain-scoped or re-investigation-shaped call has
+been measured yet, only two full-case baseline-style calls) — see
+`eval/COST_LOG.md` for the full breakdown and what's still unverified.
