@@ -121,7 +121,7 @@ ADJUDICATION_INPUT_SCHEMA: dict[str, Any] = {
             "type": "array",
             "items": {
                 "type": "object",
-                "required": ["claim_ids", "conflict_type", "rationale"],
+                "required": ["claim_ids", "conflict_type", "confidence", "rationale"],
                 "additionalProperties": False,
                 "properties": {
                     "claim_ids": {
@@ -131,6 +131,7 @@ ADJUDICATION_INPUT_SCHEMA: dict[str, Any] = {
                         "direct_contradiction", "subtle_contradiction",
                         "cross_domain_conflict", "version_conflict",
                     ]},
+                    "confidence": {"enum": ["high", "low"]},
                     "rationale": {"type": "string"},
                 },
             },
@@ -154,6 +155,23 @@ sub-processor's location). Do not re-flag claims that are simply about unrelated
 Do not fabricate a conflict between claims that are actually compatible — a claim being \
 vague or under-specified is not, by itself, a conflict with a more specific claim elsewhere \
 unless they are actually incompatible.
+
+## Confidence
+
+For every conflict you report, also assign a confidence level:
+
+- **high**: the claims themselves, taken at face value as written, explicitly assert facts or \
+values that cannot both be true. You don't need to add an assumption they don't state to see \
+the incompatibility.
+- **low**: the claims are thematically related and could plausibly interact, but establishing \
+an actual conflict requires an inference beyond what either claim states outright.
+
+Do not report a conflict — at any confidence level — built on an inferred operational \
+dependency between two claims about different subjects (e.g. "claim A's monitoring would be \
+needed to verify claim B's deletion happened") unless one of the documents actually states \
+that dependency. If you find yourself constructing a scenario or mechanism connecting two \
+claims that neither claim nor any document actually describes, that is not a conflict — leave \
+it out entirely, don't report it as low confidence.
 
 For each conflict, cite the exact claim_ids involved and explain the substantive tension in \
 rationale — this is read by a human reviewer deciding what to do about it, not just a label.""",
@@ -180,6 +198,7 @@ def _build_adjudication_user_message(claims: list[PooledClaim]) -> str:
 class SemanticConflict:
     claim_ids: list[str]
     conflict_type: str
+    confidence: str  # "high" | "low" — only "high" may overwrite verification_status
     rationale: str
 
 
@@ -221,7 +240,7 @@ def adjudicate_semantic_conflicts(
         conflicts = [
             SemanticConflict(
                 claim_ids=c["claim_ids"], conflict_type=c["conflict_type"],
-                rationale=c["rationale"],
+                confidence=c["confidence"], rationale=c["rationale"],
             )
             for c in result.tool_input["conflicts"]
         ]
@@ -305,13 +324,18 @@ def reconcile(
     remaining = [c for c in pooled if c.claim_id not in deterministic_ids]
     adjudication = adjudicate_semantic_conflicts(client, model=model, claims=remaining)
     for sc in adjudication.conflicts:
-        for cid in sc.claim_ids:
-            if cid in claim_by_id:
-                claim_by_id[cid].data["verification_status"] = "contradicted"
+        if sc.confidence == "high":
+            for cid in sc.claim_ids:
+                if cid in claim_by_id:
+                    claim_by_id[cid].data["verification_status"] = "contradicted"
+        # "low" confidence leaves verification_status untouched — a speculative
+        # adjudication must not silently overwrite an otherwise-correct label
+        # (Gate 6's Phase 8 run showed this is exactly how over-triggered
+        # semantic adjudication turns into a measured accuracy regression).
         conflicts.append(Conflict(
             claim_ids=sc.claim_ids,
             conflict_type=sc.conflict_type,
-            status="resolved",
+            status="resolved" if sc.confidence == "high" else "open",
             resolution_method="semantic_adjudication",
             resolution_rationale=sc.rationale,
         ))

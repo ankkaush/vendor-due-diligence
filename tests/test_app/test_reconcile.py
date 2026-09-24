@@ -234,6 +234,7 @@ def test_reconcile_applies_semantic_conflicts_across_domains():
         "conflicts": [{
             "claim_ids": ["security-0", "privacy-0"],
             "conflict_type": "cross_domain_conflict",
+            "confidence": "high",
             "rationale": "EU-only claim conflicts with a US-based sub-processor disclosure.",
         }],
     }
@@ -252,6 +253,52 @@ def test_reconcile_applies_semantic_conflicts_across_domains():
     updated = {c.claim_id: c.data["verification_status"] for c in result.reconciled_claims}
     assert updated["security-0"] == "contradicted"
     assert updated["privacy-0"] == "contradicted"
+
+
+def test_low_confidence_semantic_conflict_leaves_status_untouched_and_stays_open():
+    """Phase 8's real run showed exactly this failure mode: a speculative
+    semantic-adjudication flag unconditionally overwriting a correct
+    verification_status to "contradicted" (case-01-c6, eval/COST_LOG.md).
+    A "low" confidence conflict must not repeat that — it stays open for
+    a human reviewer instead of silently corrupting the label."""
+    security = AgentResult(
+        claims=[_claim(
+            "24/7 monitoring", "provides_monitoring", "yes", domain="security",
+            source_document_id="doc-a", verification_status="unverified",
+        )],
+        injection_detected=False, injection_note="", input_tokens=0, output_tokens=0, model="m",
+    )
+    privacy = AgentResult(
+        claims=[_claim(
+            "data deletion after termination", "retention_period", "30 days",
+            domain="privacy_ai_governance", source_document_id="doc-b",
+            verification_status="supported",
+        )],
+        injection_detected=False, injection_note="", input_tokens=0, output_tokens=0, model="m",
+    )
+    semantic_response = {
+        "conflicts": [{
+            "claim_ids": ["security-0", "privacy-0"],
+            "conflict_type": "subtle_contradiction",
+            "confidence": "low",
+            "rationale": "Monitoring may be operationally relevant to verifying deletion, "
+                          "though neither claim nor document states this dependency.",
+        }],
+    }
+    client = FakeLLMClient(responses=[semantic_response])
+
+    result = reconcile(
+        client, model="m", security_result=security, privacy_result=privacy, documents=DOCS,
+    )
+
+    assert len(result.conflicts) == 1
+    assert result.conflicts[0].status == "open"
+    assert result.conflicts[0].resolution_method == "semantic_adjudication"
+
+    # Original statuses untouched — no overwrite on a low-confidence flag.
+    updated = {c.claim_id: c.data["verification_status"] for c in result.reconciled_claims}
+    assert updated["security-0"] == "unverified"
+    assert updated["privacy-0"] == "supported"
 
 
 def test_reconcile_with_no_conflicts_at_all_makes_only_one_semantic_call():

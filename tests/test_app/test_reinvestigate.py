@@ -64,6 +64,24 @@ def test_prompt_describes_the_discrepancy_neutrally_not_as_another_agents_claim(
     assert "the other agent" not in system.lower()
 
 
+def test_prompt_rules_out_later_effective_date_alone_as_a_resolution():
+    """Phase 8's real run showed this exact failure mode: re-investigation
+    resolved a deliberately unresolvable version conflict (case-07 — two
+    DPA versions, no changelog) by treating the later-dated document as
+    automatically authoritative, which the case's ground truth explicitly
+    designed to be wrong (eval/COST_LOG.md). The prompt must rule this
+    shortcut out explicitly, not just say "don't invent a resolution.\""""
+    client = FakeLLMClient(responses=[RESOLVED_RESPONSE])
+    run_reinvestigation(
+        client, model="m", agent_type="privacy_investigator", domain="privacy_ai_governance",
+        documents=ALL_DOCS, claim_a=CLAIM_A, claim_b=CLAIM_B,
+    )
+    system = client.calls[0]["system"].lower()
+    assert "later effective date" in system or "later revision date" in system
+    assert "does not" in system or "not, by itself" in system
+    assert "supersede" in system
+
+
 def test_resolved_outcome_is_parsed():
     client = FakeLLMClient(responses=[RESOLVED_RESPONSE])
     result = run_reinvestigation(

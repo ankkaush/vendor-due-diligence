@@ -59,7 +59,14 @@ Re-examine your documents specifically for this topic. Determine one of two thin
 concern genuinely different scopes or time periods that were not initially obvious. If so, \
 explain the reconciling detail and which value (if either) should be treated as authoritative.
 2. They do genuinely conflict, and nothing in your documents resolves which is authoritative. \
-If so, say so plainly — do not guess or invent a resolution your documents do not support."""
+If so, say so plainly — do not guess or invent a resolution your documents do not support.
+
+A later effective date or revision date on one of the two documents does NOT, by itself, \
+establish that it supersedes the other — dating alone is not a reconciling detail. Only an \
+explicit changelog entry, amendment clause, or explicit statement in the documents that one \
+version supersedes or overrides the other counts as actually resolving this. If the documents \
+simply contain two different values with no such explicit statement, that is case 2 \
+(unresolved) even when one document is dated later than the other."""
 
 
 def run_reinvestigation(
