@@ -127,6 +127,92 @@ than the smoke test's toy one — 11 required fields per claim, not 3):
 | Expected (1.5× claims, 180 tok/claim) | 38,862 | ~14,580 | **~$0.112** |
 | Conservative bound (2× claims, 220 tok/claim) | 38,862 | ~23,420 | **~$0.156** |
 
+## Phase 6 — real baseline run, executed 2026-09-24
+
+Approved and run: `python -m eval.run_baseline --i-have-reviewed-the-cost-estimate`.
+All 18 cases completed, zero structured-output failures.
+
+| Case | Input tok | Output tok | Cost |
+|---|---|---|---|
+| case-01 | 2,567 | 2,204 | $0.013587 |
+| case-02 | 2,320 | 1,654 | $0.010590 |
+| case-03 | 2,185 | 1,068 | $0.007525 |
+| case-04 | 2,040 | 902 | $0.006550 |
+| case-05 | 1,989 | 723 | $0.005604 |
+| case-06 | 2,095 | 959 | $0.006890 |
+| case-07 | 1,991 | 675 | $0.005366 |
+| case-08 | 2,058 | 1,077 | $0.007443 |
+| case-09 | 2,042 | 1,057 | $0.007327 |
+| case-10 | 2,228 | 896 | $0.006708 |
+| case-11 | 1,982 | 678 | $0.005372 |
+| case-12 | 2,125 | 640 | $0.005325 |
+| case-13 | 2,009 | 782 | $0.005919 |
+| case-14 | 2,117 | 1,651 | $0.010372 |
+| case-15 | 2,122 | 744 | $0.005842 |
+| case-16 | 2,044 | 1,019 | $0.007139 |
+| case-17 | 2,266 | 1,257 | $0.008551 |
+| case-18 | 2,340 | 2,142 | $0.013050 |
+| **Total** | **38,520** | **20,128** | **$0.139160** |
+
+**Estimate check:** input landed almost exactly on the projection (38,520
+actual vs. 38,862 projected — the linear fit held up well beyond the two
+original calibration points). Output landed between the expected and
+conservative scenarios (20,128 vs. 14,580 expected / 23,420 conservative)
+— real per-claim output ran a bit richer than the 180 tok/claim estimate,
+consistent with the model tending to write fuller rationale text than
+the smoke-test calibration samples suggested.
+
+**Cumulative spend: $0.008130 (calibration) + $0.139160 (this run) =
+$0.147290 of $0.50. Remaining: $0.352710.**
+
+### Aggregate results
+
+| Metric | Value |
+|---|---|
+| Structured output validity | 100% (18/18) |
+| Overall claim recall | 86.5% |
+| Status accuracy on matched claims | 59.8% |
+| Contradiction recall | 62.5% |
+| Missing-evidence recall | 100% |
+| Injection detection rate | 100% (4/4 planted attempts) |
+| Mean evidence grounding rate | 100% |
+
+Full raw output: `eval/results/baseline_20260924T080217Z.json`.
+
+### What the 59.8% status accuracy actually is — investigated, not just reported
+
+This is the headline number for the whole project's thesis, so it was
+worth reading the actual predicted-vs-ground-truth claims before writing
+it up, not just trusting the aggregate. It is **not** a scoring bug —
+the claim matches are correct — it's two real, somewhat opposite
+baseline miscalibrations:
+
+1. **Over-conservative on single-document self-attested technical
+   claims.** case-11 (both claims 0% correct), case-14-c3, and
+   case-16-c3 all mark a straightforward claim like "AES-256 encryption
+   is used" — sourced from exactly one document, nothing to
+   corroborate or contradict — as `unverified` instead of `supported`,
+   despite the system prompt explicitly stating self-attested claims
+   without a contradicting signal count as supported. The model isn't
+   consistently applying that rule.
+2. **Over-lenient on vague wording.** case-05-c1 — the deliberate
+   false-positive trap (vague retention language that should be
+   `ambiguous`) — was marked `supported` instead. The opposite failure
+   mode from #1, on a similarly single-document claim.
+3. **Asymmetric contradiction handling.** case-07 (version conflict)
+   and case-14-c2 (cross-domain conflict) each have two linked claims
+   that should both be `contradicted`; the baseline caught the
+   contradiction from one document's side but scored the other
+   document's claim as `supported`/`unverified` in isolation, missing
+   that it's the *same* conflict.
+
+None of these are hypothetical edge cases — they're exactly the
+deliberately-planted traps in `eval/CASES.md`'s design (case-05's
+ambiguous-vs-contradiction trap, case-07/14's paired-conflict
+consistency, case-11/16's self-attestation rule). The baseline is
+applying surface pattern-matching more than the precise rubric in
+several places, not failing randomly.
+
 After the $0.008130 already spent: **expected cumulative ~$0.120,
 worst-case bound ~$0.164 — leaving $0.336–$0.380 of the $0.50 budget**
 for Phase 7's investigators and any re-investigation calls once those
@@ -136,14 +222,11 @@ enforces the same $0.50 hard stop live: cumulative spend is checked
 before every case, not just projected in advance, and execution halts
 before any call that would exceed it.
 
-**Not yet run.** Per ADR-009, this needs explicit review and approval
-before executing:
-
-```bash
-python -m eval.run_baseline --i-have-reviewed-the-cost-estimate
-```
+**Status: executed and reviewed** — see "Phase 6 — real baseline run"
+above for actual results.
 
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per
-ADR-009.
+ADR-009. Next expected real spend: Phase 7's investigator agents, once
+built — same review process.

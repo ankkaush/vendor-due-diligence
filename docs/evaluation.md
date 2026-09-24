@@ -1,11 +1,9 @@
 # Evaluation
 
-**Status: approved methodology, dataset complete (Phase 3). Phase 6 baseline
-agent built and unit-tested (`app/agents/baseline.py`,
-`tests/test_agents/test_baseline.py`, `eval/scoring.py`,
-`eval/run_baseline.py`) — real cost projected and pending review
-(`eval/COST_LOG.md`), not yet executed against the real API. Metrics
-below get populated once that run is approved and completed.**
+**Status: Phase 6 complete. Real baseline run executed 2026-09-24 against
+all 18 cases (`eval/COST_LOG.md`, `eval/results/baseline_20260924T080217Z.json`)
+— see "Phase 6 baseline results" below. This is now the number Phase
+7/8's multi-agent architecture has to beat at Gate 6.**
 
 Evaluation is designed before the pipeline, not after. See
 [ADR-006](decisions/ADR-006-gate6-methodology.md) for the full Gate 6
@@ -37,6 +35,65 @@ aggregate accuracy:** which verification errors does the independent
 multi-agent architecture catch that the strong single-agent baseline
 misses?
 
+## Phase 6 baseline results (executed, not projected)
+
+`app/agents/baseline.py` run against all 18 real cases via
+`python -m eval.run_baseline`, approved per ADR-009's cost-review
+discipline. Full breakdown in `eval/COST_LOG.md`; raw output in
+`eval/results/baseline_20260924T080217Z.json`.
+
+| Metric | Value |
+|---|---|
+| Structured output validity | 100% (18/18) |
+| Overall claim recall | 86.5% |
+| Status accuracy on matched claims | 59.8% |
+| Contradiction recall | 62.5% |
+| Missing-evidence recall | 100% |
+| Injection detection rate | 100% (4/4 planted attempts) |
+| Mean evidence grounding rate | 100% |
+| Cost | $0.139160 (18 cases) |
+
+**Structured-output enforcement (ADR-010) and injection resistance both
+came back clean — 100% each.** Those aren't close calls: forced tool use
+produced zero schema violations across 18 real calls, and every planted
+injection attempt (direct, indirect, and the two that specifically
+targeted the case's own planted conflicts) was flagged without changing
+the affected claims' assessment.
+
+**Status accuracy (59.8%) is the number that matters most for Gate 6,
+and it was investigated case-by-case before being reported, not just
+aggregated.** It is not a scoring artifact — the claim matches are
+correct — it reflects two real, partly opposite baseline miscalibrations:
+
+1. **Over-conservative on single-document self-attested technical
+   claims.** A straightforward claim like "AES-256 encryption is used,"
+   sourced from exactly one document with nothing to corroborate or
+   contradict it, is repeatedly marked `unverified` instead of
+   `supported` (case-11: both claims; case-14-c3; case-16-c3) — despite
+   the system prompt explicitly stating self-attested claims without a
+   contradicting signal count as supported. The rule isn't being applied
+   consistently.
+2. **Over-lenient on vague wording** — the opposite failure, on a
+   similarly single-document claim: case-05-c1, the deliberately planted
+   false-positive trap (vague retention language that should be
+   `ambiguous`), was marked `supported` instead.
+3. **Asymmetric contradiction handling** — case-07 (version conflict)
+   and case-14-c2 (cross-domain conflict) each have two linked claims
+   that should both be `contradicted`; the baseline caught the conflict
+   from one document's side but scored the other document's claim as
+   `supported`/`unverified` in isolation, missing that it's the same
+   conflict.
+
+None of these are edge cases outside what the dataset was built to
+probe — they land squarely on `eval/CASES.md`'s deliberately planted
+traps (case-05's ambiguous-vs-supported trap, case-07/14's paired-
+conflict consistency, case-11/16's self-attestation rule). This is
+exactly the kind of finding Gate 6 exists to surface, and it sets a
+concrete, non-trivial bar: multi-agent doesn't need to be perfect to
+clear it, but "does independent verification catch these specific
+failure patterns" is now a real, falsifiable question with a measured
+baseline to test against, not a hypothetical one.
+
 ## Gate 6 methodology (pre-registration)
 
 1. Phase 6 completes → baseline quality, cost, latency, and retry/failure
@@ -61,9 +118,8 @@ verification-reasoning quality.
 
 ## Ground-truth dataset
 
-**Status: Phase 3a (ontology) complete. Phase 3b (case construction) in
-progress — 3 of 18 cases built as validated exemplars; see `eval/CASES.md`
-for the full plan and build status.**
+**Status: Phase 3 complete. All 18 cases built and validated; see
+`eval/CASES.md` for the full plan, coverage check, and build status.**
 
 18 synthetic vendor evidence packages (3–5 documents each), each with an
 explicit ground-truth label file covering: supported claims, unsupported
@@ -115,14 +171,12 @@ python eval/validate_ground_truth.py
 
 ### Case plan (Phase 3b)
 
-See [`eval/CASES.md`](../eval/CASES.md) for the full 18-case matrix, the
-coverage check against every required failure-mode category, and build
-status. Cases 01 (clean baseline), 02 (direct contradiction), and 10
-(direct prompt injection) are built and passing validation — chosen first
-because they exercise the three structurally different shapes the ontology
-has to represent (an all-supported case, a claim-level contradiction, and a
-non-claim injection attempt) before the remaining 15 are produced against
-the same template.
+See [`eval/CASES.md`](../eval/CASES.md) for the full 18-case matrix and
+the coverage check against every required failure-mode category. All 18
+cases are built, pass schema/referential validation, and — as of Phase 6
+— have now been run through both real parsing/classification
+(`tests/test_app/test_eval_case_routing.py`) and a real model
+(`eval/run_baseline.py`).
 
 ## Cost ceiling
 
@@ -142,17 +196,17 @@ decision #11 with a specific number and an explicit spend discipline:
 - Actual spend is tracked in `eval/COST_LOG.md` from the first real call
   onward, not just checked against a ceiling after the fact.
 
-**Calibrated projection (measured, not illustrative)** — two real
-smoke-test calls (`eval/COST_LOG.md`: case-11 and case-01, both on Claude
-Haiku 4.5 at real sourced pricing of $1/$5 per MTok in/out) were used to
-fit an input-size model and an output/input ratio, then applied to all 18
-built cases' actual document sizes. One full comparison pass — baseline
-plus both investigators plus bounded re-investigation, 61 calls total —
-projects to **~$0.148**, down from an earlier rough guess of ~$0.23; the
-original per-call size assumptions overestimated input tokens more than
-they underestimated output. After the $0.008130 already spent on
-calibration, this would leave roughly **$0.344 of the $0.50 budget**.
-This remains an extrapolation for the investigator and re-investigation
-legs specifically (no domain-scoped or re-investigation-shaped call has
-been measured yet, only two full-case baseline-style calls) — see
-`eval/COST_LOG.md` for the full breakdown and what's still unverified.
+**Actual spend so far (measured, not projected):** $0.008130 (two
+calibration calls) + $0.139160 (the real Phase 6 baseline run, all 18
+cases) = **$0.147290 spent, $0.352710 of $0.50 remaining.** Full
+per-case breakdown in `eval/COST_LOG.md`.
+
+**What's still a projection:** Phase 7's investigator and
+re-investigation calls. The earlier toy-prompt-based estimate (~$0.148
+for a full baseline+multi-agent comparison pass) is now known to have
+understated the baseline's real cost by roughly 25–40% once the real
+prompt and forced-tool-use overhead were measured — the same correction
+should be expected for investigator-call estimates once Phase 7's real
+prompts exist, and that projection should be recalibrated the same way
+(measure the real prompt, don't re-guess) before committing to the full
+Gate 6 run.
