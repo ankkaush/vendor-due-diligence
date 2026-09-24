@@ -382,8 +382,61 @@ supposed to provide, measurable against a number that already exists
 that's meaningful too, per Gate 6 / ADR-006's commitment to accept
 either outcome honestly.
 
+## Phase 8 — reconciliation run projection (pending review, not yet executed)
+
+`app/reconcile.py` (deterministic conflict detection + semantic
+adjudication) and `app/reinvestigate.py` (bounded, single-round,
+same-agent re-investigation) are built and unit-tested against
+`FakeLLMClient` (17 tests, `tests/test_app/test_reconcile.py` +
+`tests/test_app/test_reinvestigate.py`). `eval/run_reconciliation.py`
+reuses the ALREADY-SAVED Phase 7 investigator output
+(`eval/results/investigators_20260924T082006Z.json`) instead of
+re-running the investigators — no new spend for that half, only for
+reconciliation's own calls.
+
+**Running the real deterministic pass against the real saved Phase 7
+output (no API cost, pure function) before projecting anything found a
+genuine, useful fact**: it catches only 2 of the ~6 expected conflicts
+(case-07, case-16) — fewer than hoped, because the investigators'
+`subject` field isn't always topically descriptive enough for
+jaccard-similarity matching to recognize two claims as "the same topic."
+This isn't a bug to fix before running — it's exactly why the
+architecture has a semantic-adjudication fallback in the first place:
+every claim the deterministic pass doesn't confidently pair off flows
+into the semantic call instead, which is explicitly instructed to catch
+conflicts "even where the connection is not obvious from matching
+wording." Measuring this first, before estimating cost, changed the
+projection meaningfully (17 semantic calls instead of a hoped-for
+handful, but each smaller since real per-case pooled-claim counts are
+now known exactly, not guessed).
+
+| Component | Measured / derived value |
+|---|---|
+| Deterministic conflicts found (free, no API call) | 2 (case-07, case-16) |
+| Cases requiring a semantic-adjudication call | 17 of 18 (case-07 has nothing left over) |
+| Semantic adjudication system prompt | 334 tokens |
+| Re-investigation calls needed | 2 (one per deterministic conflict) |
+
+| Scenario | Input tok (est) | Output tok (est) | Cost |
+|---|---|---|---|
+| Semantic adjudication (17 calls) | ~30,146 | ~5,610 | — |
+| Re-investigation (2 calls) | ~2,196 | ~300 | — |
+| **Total** | **~32,342** | **~5,910** | **~$0.062** |
+
+After the $0.317411 already spent: **expected cumulative ~$0.379,
+leaving ~$0.121 of the $0.50 budget** — comfortable margin, and this is
+the last real spend expected before Phase 9 (human review UI, no API
+calls).
+
+**Not yet run.** Per ADR-009, this needs explicit review and approval
+before executing:
+
+```bash
+python -m eval.run_reconciliation --i-have-reviewed-the-cost-estimate \
+    --investigator-results eval/results/investigators_20260924T082006Z.json
+```
+
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per
-ADR-009. Next expected real spend: Phase 8's reconciliation/
-re-investigation calls, once built — same review process.
+ADR-009.

@@ -1,6 +1,8 @@
 # Evaluation
 
-**Status: Phase 6 and Phase 7 both complete with real executed runs.**
+**Status: Phase 6 and Phase 7 complete with real executed runs; Phase 8
+(reconciliation) built and unit-tested with the real run costed (~$0.062
+projected, `eval/COST_LOG.md`) and pending review before execution.**
 See "Phase 6 baseline results" and "Phase 7 investigator results" below.
 Gate 6's final numeric threshold was locked 2026-09-24 in
 [ADR-006](decisions/ADR-006-gate6-methodology.md) — later than originally

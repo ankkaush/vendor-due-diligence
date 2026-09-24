@@ -128,6 +128,37 @@ DB connections racing the same transition, exactly one wins
 deliberately not implemented yet — there's nothing to resume into until
 Phase 6/7's agents exist; scoped out explicitly, not forgotten.
 
+## Reconciliation (RECONCILING / REINVESTIGATING)
+
+**Implemented (Phase 8):** [`app/reconcile.py`](../app/reconcile.py) +
+[`app/reinvestigate.py`](../app/reinvestigate.py). Two distinct
+mechanisms, chosen deliberately from what Phase 7's real evaluation
+showed (`docs/evaluation.md`'s category breakdown):
+
+1. **Deterministic conflict detection** — same-agent claims with matching
+   subject/predicate but different values (e.g. two retention-period
+   figures from one investigator's own documents). Resolved via one
+   bounded re-investigation call (decision #13) back to the *same*
+   investigator — a same-agent follow-up over documents it already has,
+   never a cross-boundary call, since routing already guarantees a
+   same-domain conflict was found by one agent in the first place. The
+   follow-up is phrased neutrally (ADR-007): it describes the agent's own
+   prior discrepancy, never "the other agent disagrees."
+2. **Semantic adjudication** — one LLM call per case, given every
+   remaining pooled claim from both investigators at once, to catch
+   conflicts that don't share matching wording — this is what recovers
+   `cross_domain_conflict`, since only the reconciler (not either
+   domain-locked investigator) can see both sides at once. No
+   re-investigation is used here: asking either investigator to "look
+   again" wouldn't surface the other domain's document it structurally
+   never receives.
+
+A genuinely unresolvable conflict (case-18's deliberately-planted pair,
+`eval/CASES.md`) is expected to stay `open` after its one bounded
+re-investigation round — that's the correct outcome, not a failure to
+keep trying (`tests/test_app/test_reinvestigate.py`,
+`tests/test_app/test_reconcile.py`).
+
 ## Document classification (routing table)
 
 The routing table Phase 5 was scoped to decide: a deterministic

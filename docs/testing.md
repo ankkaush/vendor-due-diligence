@@ -2,7 +2,7 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 123 tests passing through Phase 7
+the blueprint discussion. 144 tests passing through Phase 8
 (`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
 `tests/test_eval/`) — DB tests against a real local Postgres, agent tests
 against `FakeLLMClient` (zero real API calls, ADR-009), scoring tests
@@ -105,3 +105,31 @@ against synthetic data.**
   matches what the Phase 6 baseline uses — Gate 6 needs to compare
   architectures, not accidentally compare differently-worded grading
   standards (ADR-006).
+
+## Delivered in Phase 8
+
+- **Deterministic conflict detection is a pure function, fully tested
+  without any model at all** (`tests/test_app/test_reconcile.py`): same
+  agent, matching subject/predicate, different value → conflict; same
+  topic same value → no conflict (agreement, not flagged); different
+  agents with matching subject/predicate → correctly NOT flagged by this
+  pass at all (that's semantic adjudication's job — a dedicated test
+  asserts the deterministic pass stays out of it even when the fields
+  line up).
+- **The empty-input guard pattern repeats, deliberately** —
+  `test_semantic_adjudication_is_skipped_when_deterministic_pass_consumes_everything`
+  confirms that if every pooled claim was already resolved
+  deterministically, the semantic-adjudication call is skipped entirely
+  (same principle as Phase 7's empty-domain guard) — found and tested
+  before spending anything, not after.
+- **Re-investigation's neutrality, tested directly**:
+  `test_prompt_describes_the_discrepancy_neutrally_not_as_another_agents_claim`
+  asserts the follow-up prompt describes the agent's own prior
+  discrepancy without ever framing it as "another investigator
+  disagrees" — ADR-007's anchoring-avoidance requirement, checked in the
+  actual prompt text, not just claimed in a docstring.
+- **Unresolved is a valid, tested outcome, not an error path**:
+  `test_unresolved_outcome_is_parsed_and_is_not_an_error` and
+  `test_reconcile_leaves_conflict_open_when_reinvestigation_cannot_resolve`
+  — case-18's deliberately-unresolvable conflict needs the system to say
+  "I don't know, here's why" cleanly, not raise or fabricate an answer.

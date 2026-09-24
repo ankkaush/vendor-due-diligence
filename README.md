@@ -1,14 +1,13 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phases 6 and 7 both complete with real executed
-evaluation runs. Baseline: 100% structured-output validity, 100%
-injection detection, 59.8% status accuracy. Raw (pre-reconciliation)
-investigators: 94.2% claim recall (up from 86.5%), 100% on subtle and
-direct contradiction (up from 66.7% each) — but 0% on cross-domain
-conflicts, which is structurally expected until reconciliation exists to
-compare both investigators' findings (`docs/evaluation.md`). Gate 6's
-real threshold is now locked for that comparison (ADR-006). $0.317 of
-$0.50 spent. No reconciliation yet (Phase 8); no HTTP layer yet either.**
+**Status: early build — Phases 6 and 7 complete with real executed
+evaluation runs (baseline vs. raw multi-agent — `docs/evaluation.md`).
+Phase 8 (reconciliation: deterministic conflict detection + semantic
+adjudication + bounded re-investigation) built and unit-tested — 144
+tests. The real reconciliation run is costed (~$0.062 projected,
+`eval/COST_LOG.md`) and pending review — this is the run Gate 6's locked
+threshold (ADR-006) actually decides against. $0.317 of $0.50 spent so
+far. No HTTP layer yet (Phase 9+).**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -76,7 +75,7 @@ cp .env.example .env   # then fill in real values — never commit .env
 
 docker compose up -d          # isolated local Postgres, port 5437
 alembic upgrade head          # apply the schema
-pytest tests/                 # 127 tests: schema, intake, parsing, state machine, agents, boundaries, scoring
+pytest tests/                 # 144 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation
 ```
 
 `pre-commit install` wires up secret scanning (gitleaks) and linting to run
