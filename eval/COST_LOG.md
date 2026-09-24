@@ -97,8 +97,53 @@ still extrapolated, not calibrated. If either turns out meaningfully
 different from these assumptions once Phase 7 exists, this projection
 should be revisited before running the full 61-call evaluation for real.
 
+## Phase 6 — real baseline run projection (pending review, not yet executed)
+
+The earlier ~$0.148 full-comparison-pass projection above used the toy
+smoke-test prompt's size. The actual Phase 6 baseline agent
+(`app/agents/baseline.py`) has a real, considerably larger system prompt
+(rubric definitions, grounding requirements, injection-handling
+instructions) plus forced-tool-use overhead, so that projection is
+**superseded for the baseline portion** by the measurement below, taken
+directly from the real prompt and real tool schema against all 18 cases'
+actual document sizes — not re-estimated from scratch.
+
+| Component | Measured value |
+|---|---|
+| System prompt | 3,553 chars → 888 tokens |
+| Tool schema (`FINDINGS_INPUT_SCHEMA`) | 1,382 chars → 346 tokens |
+| Anthropic's forced-tool-choice overhead (Haiku 4.5, documented) | 588 tokens |
+| Total user-message chars, all 18 cases (real documents) | 24,271 chars |
+| Ground-truth claim count, all 18 cases | 52 |
+
+Applying the same input-token linear fit as before (now including the
+888 + 346 + 588 fixed overhead per call) and an output estimate scaled
+from the case-01/case-11 finding that real extraction runs ~1.5× the
+ground-truth claim count at ~180 tokens/claim (the real schema is richer
+than the smoke test's toy one — 11 required fields per claim, not 3):
+
+| Scenario | Input tok | Output tok | Cost |
+|---|---|---|---|
+| Expected (1.5× claims, 180 tok/claim) | 38,862 | ~14,580 | **~$0.112** |
+| Conservative bound (2× claims, 220 tok/claim) | 38,862 | ~23,420 | **~$0.156** |
+
+After the $0.008130 already spent: **expected cumulative ~$0.120,
+worst-case bound ~$0.164 — leaving $0.336–$0.380 of the $0.50 budget**
+for Phase 7's investigators and any re-investigation calls once those
+exist. `eval/run_baseline.py` is built, tested against `FakeLLMClient`
+(zero real calls — `tests/test_agents/test_baseline.py`, 11 tests), and
+enforces the same $0.50 hard stop live: cumulative spend is checked
+before every case, not just projected in advance, and execution halts
+before any call that would exceed it.
+
+**Not yet run.** Per ADR-009, this needs explicit review and approval
+before executing:
+
+```bash
+python -m eval.run_baseline --i-have-reviewed-the-cost-estimate
+```
+
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per
-ADR-009. The next real spend is expected to be the actual Phase 6/7
-evaluation run, not before.
+ADR-009.

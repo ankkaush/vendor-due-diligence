@@ -1,7 +1,11 @@
 # Evaluation
 
-**Status: approved methodology. Dataset construction is Phase 3 (before the
-baseline is built). Numbers populated starting Phase 6.**
+**Status: approved methodology, dataset complete (Phase 3). Phase 6 baseline
+agent built and unit-tested (`app/agents/baseline.py`,
+`tests/test_agents/test_baseline.py`, `eval/scoring.py`,
+`eval/run_baseline.py`) — real cost projected and pending review
+(`eval/COST_LOG.md`), not yet executed against the real API. Metrics
+below get populated once that run is approved and completed.**
 
 Evaluation is designed before the pipeline, not after. See
 [ADR-006](decisions/ADR-006-gate6-methodology.md) for the full Gate 6

@@ -8,7 +8,7 @@ license = "MIT"
 authors = [{ name = "Ankit Kaushik" }]
 
 # Runtime dependencies are added incrementally, phase by phase, as they are
-# actually needed — FastAPI/Anthropic SDK etc. arrive starting Phase 6+.
+# actually needed — FastAPI etc. arrive starting Phase 9.
 dependencies = [
     "sqlalchemy>=2.0",
     "alembic>=1.13",
@@ -16,6 +16,8 @@ dependencies = [
     "pydantic-settings>=2.4",
     "pypdf>=4.3",       # PDF text extraction (decision #10: PDF/DOCX/TXT/MD only)
     "defusedxml>=0.7",  # XXE-safe XML parsing for DOCX (ADR/security.md Phase 5 requirement)
+    "anthropic>=0.40",  # sole LLM provider (ADR-001) — real calls only via app/llm/client.py
+    "jsonschema>=4.22", # validates agent tool-call output (ADR-010) as well as eval ground truth
 ]
 
 [project.optional-dependencies]
@@ -24,14 +26,10 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.10",
     "pre-commit>=3.7",
-]
-# Evaluation-dataset tooling (Phase 3) — validates eval/ground_truth/*.json
-# against eval/schema/ground_truth.schema.json, and the one-call smoke test
-# (ADR-009). Not a runtime dependency of the application itself, which gets
-# its own dependencies starting Phase 6.
-eval = [
-    "jsonschema>=4.22",
-    "anthropic>=0.40",
+    "httpx2>=2.13",  # tests/fakes.py constructs real anthropic.APIStatusError
+                     # subclasses, which require a genuine response object —
+                     # an undeclared transitive dep of anthropic until now,
+                     # made explicit since test code imports it directly.
 ]
 
 [tool.ruff]

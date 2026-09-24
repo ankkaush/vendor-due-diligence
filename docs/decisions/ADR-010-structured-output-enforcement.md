@@ -1,6 +1,11 @@
 # ADR-010: Structured output must be enforced, not requested
 
-**Status:** Accepted
+**Status:** Accepted, implemented Phase 6 — `app/llm/client.py`'s
+`call_with_forced_tool` (`tool_choice={"type": "tool", "name": ...}`),
+consumed by `app/agents/baseline.py`. Verified in
+`tests/test_agents/test_baseline.py` against `FakeLLMClient`, not yet
+against the real API (that happens as part of the Phase 6 evaluation run,
+pending cost review — `eval/COST_LOG.md`).
 **Date:** 2026-09-23
 
 ## Context

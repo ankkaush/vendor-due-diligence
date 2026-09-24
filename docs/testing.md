@@ -2,9 +2,11 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 81 tests passing through Phase 5
-(`tests/test_db/` + `tests/test_app/`), all against a real local Postgres
-(`docker compose up -d`), none mocked at the DB layer.**
+the blueprint discussion. 104 tests passing through Phase 6
+(`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
+`tests/test_eval/`) — DB tests against a real local Postgres, agent tests
+against `FakeLLMClient` (zero real API calls, ADR-009), scoring tests
+against synthetic data.**
 
 - **Unit** — schema validation, state transitions, deterministic comparison
   logic, retry/backoff logic, idempotency guards, boundary-enforcement
@@ -50,16 +52,33 @@ the blueprint discussion. 81 tests passing through Phase 5
   acceptance step named in `architecture.md`, run against real content
   rather than the classifier tested in isolation.
 
+## Delivered in Phase 6
+
+- **Structured-output enforcement, tested against a fake, not the real
+  API**: `app/llm/client.py`'s `call_with_forced_tool` uses
+  `tool_choice={"type": "tool", ...}` (ADR-010) — genuinely forced, not
+  requested. `tests/test_agents/test_baseline.py` covers schema
+  violations (missing required field, invalid enum value) raising
+  `InvalidAgentOutputError` and confirms they are NOT retried (a schema
+  problem, not a transient one), separately from real API errors
+  (`RateLimitError` retried via `app/retry.py`, `BadRequestError` not) —
+  using real `anthropic.APIStatusError` subclass instances
+  (`tests/fakes.py::fake_api_error`), not approximations, so
+  `is_retryable()` is tested against what the SDK would actually raise.
+- **`FakeLLMClient`** (`tests/fakes.py`) is what makes any of Phase 6+'s
+  agent code testable without spending the $0.50 budget — every agent
+  test runs against it, real API calls happen only through
+  `eval/run_baseline.py`, deliberately, after cost review (ADR-009,
+  `eval/COST_LOG.md`).
+- **Scoring is tested independently of the model**
+  (`tests/test_eval/test_scoring.py`) — claim matching, status accuracy,
+  contradiction/missing-evidence recall, injection-detection scoring, and
+  aggregation are all exercised against synthetic predicted-vs-ground-
+  truth data before ever being pointed at real model output, including a
+  test for the exact claim-splitting effect the case-01/case-11 smoke
+  tests found (a split claim matches and counts as an "extra," not a
+  penalty).
+
 Key boundary test to be written in Phase 7:
 `test_investigator_context_has_no_cross_agent_data_even_when_available` —
 see [`agent-boundaries.md`](agent-boundaries.md).
-
-Key structured-output test to be written in Phase 6
-([ADR-010](decisions/ADR-010-structured-output-enforcement.md)): a test
-confirming parsed output succeeds via the enforced structured-output
-mechanism (forced tool use / JSON schema) specifically, not via a
-defensive fence-stripping fallback catching what enforcement should have
-prevented. Motivated by two real smoke-test calls
-(`eval/COST_LOG.md`) both returning JSON wrapped in a markdown code fence
-despite an explicit prompt instruction not to — a real, reproduced
-failure mode, not a hypothetical one.
