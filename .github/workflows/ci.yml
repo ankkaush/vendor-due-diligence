@@ -1,0 +1,77 @@
+# CI (Phase 11). Two jobs: pre-commit hooks (lint + secret scan, no DB
+# needed) and the real test suite against a real Postgres service
+# container — the same local Postgres the docs everywhere else insist
+# on using instead of mocking the DB layer, just provisioned by the
+# runner instead of docker-compose.
+#
+# No secrets are referenced anywhere in this file, deliberately — every
+# real API call in this repo is gated behind an explicit CLI flag and a
+# human cost review (ADR-009, eval/COST_LOG.md) and is never something
+# CI runs; the entire test suite (tests/) uses FakeLLMClient and a local
+# Postgres, zero network, zero cost. threat-model.md 3.7.3's rule
+# ("secrets only via repo Actions secrets, never hardcoded in workflow
+# YAML, no step echoes secret values to logs") is satisfied here by
+# there being no secret for a mistake to expose in the first place.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # gitleaks scans history-aware; a shallow clone would miss it
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: pre-commit/action@v3.0.1
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vendor_dd
+          POSTGRES_PASSWORD: local_dev_only_not_a_real_secret
+          POSTGRES_DB: vendor_dd
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vendor_dd -d vendor_dd"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      # Same non-secret local-only credential docker-compose.yml uses —
+      # not a real password anywhere, just this container's fixed login.
+      DATABASE_URL: "postgresql+psycopg://vendor_dd:local_dev_only_not_a_real_secret@localhost:5432/vendor_dd"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check .
+      - name: Alembic migration up/down/up cycle
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+      - name: pytest
+        run: pytest tests/ -v

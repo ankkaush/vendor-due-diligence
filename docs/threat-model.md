@@ -1,11 +1,12 @@
 # Threat Model
 
-**Status: Phase 2's specification is implemented through Phase 10 — see
-section 7 for the row-by-row test audit executed 2026-09-24, including
-what's genuinely still open and which later phase (11/12) it's scoped
-to. Threat modeling done after the code exists is theater — this file
-was written before any application code, and every phase since has been
-checked against it, not the other way around.**
+**Status: Phase 2's specification is implemented through Phase 11 — see
+section 7 for the row-by-row test audit executed 2026-09-24 and section
+8 for Phase 11's CI/CD delivery, including what's genuinely still open
+and which later phase (12) it's scoped to. Threat modeling done after
+the code exists is theater — this file was written before any
+application code, and every phase since has been checked against it,
+not the other way around.**
 
 ## 1. System overview and trust zones
 
@@ -185,14 +186,41 @@ not silently marked done.
 | 3.6.4 | Direct document access bypassing auth | `tests/test_web/test_routes.py::test_no_separate_unauthenticated_document_route_exists` **(new)** | Covered |
 | 3.7.1 | Full document text/secrets in traces | `tests/test_app/test_observability.py::test_redact_for_trace_truncates_and_hashes_the_full_text`, `::test_traced_client_records_a_generation_with_redacted_input_and_usage` **(new)** | Covered |
 | 3.7.2 | Silent audit trail tampering | `tests/test_db/test_schema_constraints.py::test_append_only_tables_reject_update`, `::test_append_only_tables_reject_delete` | Covered |
-| 3.7.3 | CI/CD secret exposure | — | Phase 11, not reached yet — correctly out of scope for Phase 10 |
+| 3.7.3 | CI/CD secret exposure | `.github/workflows/ci.yml` (Phase 11) | Covered structurally — the workflow references no secret at all (see section 8), so there's nothing for a mistake to expose |
 
-**Honest summary, counted against all 30 rows above: 20 fully covered by
-a named test; 5 partially covered, with the uncovered remainder honestly
-scoped to a specific later phase in the same row rather than glossed
-over (upload-route auth, parser error client-facing behavior, live
-context-fetch orchestration, per-case cost enforcement, rate limiting's
-idempotency half); 2 not applicable to a code test suite at all (inherited
-TLS, DB-role operational practice); 3 explicitly deferred to Phase 11/12,
-where `deployment.md`/`threat-model.md` already scoped them before this
-phase started. Nothing here is marked covered that isn't.**
+**Honest summary, counted against all 30 rows above: 21 fully covered by
+a named test or, for 3.7.3, a structural workflow guarantee; 5 partially
+covered, with the uncovered remainder honestly scoped to a specific
+later phase in the same row rather than glossed over (upload-route auth,
+parser error client-facing behavior, live context-fetch orchestration,
+per-case cost enforcement, rate limiting's idempotency half); 2 not
+applicable to a code test suite at all (inherited TLS, DB-role
+operational practice); 2 explicitly deferred to Phase 12
+(`deployment.md` already scoped them there before this phase started).
+Nothing here is marked covered that isn't.**
+
+## 8. Phase 11 — CI/CD (executed 2026-09-24)
+
+`.github/workflows/ci.yml`: two jobs, `pre-commit` (gitleaks + the same
+hooks every local commit runs, via `pre-commit/action`) and `test`
+(ruff, an alembic `upgrade head` → `downgrade base` → `upgrade head`
+cycle, then the full suite) against a real Postgres service container —
+not a mock, the same discipline every other DB test in this repo
+follows.
+
+**No secret is referenced anywhere in the workflow file, deliberately.**
+Every real Anthropic API call in this repo is gated behind an explicit
+CLI flag and a human cost review (ADR-009) and is never something CI
+runs — the entire suite uses `FakeLLMClient` and a local Postgres, zero
+network, zero cost. The Postgres service container's credentials are
+the same fixed, non-secret local-only login `docker-compose.yml` already
+uses. threat-model.md's row 3.7.3 ("secrets only via repo Actions
+secrets, never hardcoded in workflow YAML, no step echoes secret
+values") is satisfied by there being no secret for a mistake to expose
+in the first place, not by careful handling of one that exists.
+
+Verified before committing, not assumed: the alembic up/down/up cycle
+and the full 183-test suite were both run against a real, throwaway
+Postgres container provisioned the same way the CI service container
+would be (never against the local dev database, which has real seeded
+Phase 9 demo cases that a `downgrade base` would have destroyed).

@@ -9,7 +9,9 @@ Postgres, agent tests against `FakeLLMClient` (zero real API calls,
 ADR-009), scoring tests against synthetic data, web route tests against
 a real FastAPI `TestClient` sharing the same transactional DB session.
 Every threat-model.md §3 row is checked against a real, named test —
-see its section 7 audit table.**
+see its section 7 audit table. As of Phase 11, all 183 also run in CI
+(`.github/workflows/ci.yml`) against a real Postgres service container
+on every push and PR.**
 
 - **Unit** — schema validation, state transitions, deterministic comparison
   logic, retry/backoff logic, idempotency guards, boundary-enforcement
@@ -234,8 +236,30 @@ seven were genuine gaps, closed here:
   all against a fake Langfuse client, never the real SDK (zero network,
   zero cost, ADR-009's discipline extended to a new integration).
 
-Three rows are recorded as genuinely open, not silently dropped from the
+Two rows are recorded as genuinely open, not silently dropped from the
 table: auth rate limiting and DB connection pooling are Phase 12
-deployment-time concerns neither built nor claimed to be; CI/CD secret
-exposure is Phase 11, not reached yet. See
+deployment-time concerns neither built nor claimed to be. See
 `threat-model.md`'s section 7 for the full row-by-row accounting.
+
+## Delivered in Phase 11
+
+- **CI runs the real test suite against a real Postgres, not a mock**:
+  `.github/workflows/ci.yml`'s `test` job provisions a Postgres service
+  container, runs the actual alembic migration, then the full 183-test
+  suite — the same "real DB, not mocked" discipline every DB test in
+  this repo already followed, now enforced on every push and PR, not
+  just locally.
+- **The alembic migration cycle is checked on every push, not asserted
+  once and trusted to still hold**: `upgrade head` → `downgrade base`
+  → `upgrade head` runs as its own CI step, catching migration drift
+  automatically instead of relying on data-model.md's one-time "verified
+  migration up/down cycles cleanly" claim staying true forever.
+- **The same pre-commit hooks that gate a local commit gate CI too**:
+  gitleaks and the rest run via `pre-commit/action` in a dedicated job,
+  so a hook skipped locally (`--no-verify` or an outdated local
+  environment) still gets caught before merge.
+- **Verified before committing, not assumed**: the migration cycle and
+  full suite were both run for real against a throwaway Postgres
+  container provisioned the same way CI's service container would be —
+  never against the local dev database, which has real seeded Phase 9
+  demo cases a `downgrade base` would have destroyed.

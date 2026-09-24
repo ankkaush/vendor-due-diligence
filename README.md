@@ -22,9 +22,14 @@ checked against a real test (section 7's audit table), seven genuine
 gaps found and closed, three honestly recorded as open and deferred to
 Phase 11/12 where they were always scoped to belong; Langfuse/Sentry
 integration (`app/observability.py`) is built and tested against a fake
-client, no account required. 183 tests. $0.424 of $0.50 spent; no
-further real API spend is planned. No live upload-to-pipeline HTTP flow
-yet — see `docs/limitations.md`.**
+client, no account required. **Phase 11 (CI/CD) is complete** —
+`.github/workflows/ci.yml` runs the full suite against a real Postgres
+service container plus a migration up/down/up cycle on every push/PR,
+and the same pre-commit hooks (gitleaks included) run as their own job;
+no secret is referenced anywhere in the workflow, since nothing it runs
+ever needs one (ADR-009). 183 tests. $0.424 of $0.50 spent; no further
+real API spend is planned. No live upload-to-pipeline HTTP flow yet —
+see `docs/limitations.md`.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
