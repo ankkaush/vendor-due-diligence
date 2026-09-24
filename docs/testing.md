@@ -2,8 +2,8 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 144 tests passing through Phase 8
-(`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
+the blueprint discussion. 146 tests passing through Phase 8's
+reconciliation fix (`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
 `tests/test_eval/`) — DB tests against a real local Postgres, agent tests
 against `FakeLLMClient` (zero real API calls, ADR-009), scoring tests
 against synthetic data.**
@@ -133,3 +133,14 @@ against synthetic data.**
   `test_reconcile_leaves_conflict_open_when_reinvestigation_cannot_resolve`
   — case-18's deliberately-unresolvable conflict needs the system to say
   "I don't know, here's why" cleanly, not raise or fabricate an answer.
+- **Fix for the real Phase 8 regression, tested before it cost
+  anything**: the real run found semantic adjudication over-triggering
+  and forcing an incorrect `contradicted` label; a `confidence` field
+  was added and `test_low_confidence_semantic_conflict_leaves_status_untouched_and_stays_open`
+  confirms `reconcile()` leaves `verification_status` alone and opens
+  the conflict for human review instead, rather than repeating the
+  unconditional overwrite. `test_prompt_rules_out_later_effective_date_alone_as_a_resolution`
+  does the same for the paired re-investigation defect — asserting the
+  prompt text itself rules out "later document wins" as a sufficient
+  resolution, the exact reasoning the real run's case-07 failure relied
+  on.

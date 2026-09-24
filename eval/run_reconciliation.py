@@ -48,7 +48,7 @@ PRICE_PER_MTOK_INPUT: float | None = 1.00
 PRICE_PER_MTOK_OUTPUT: float | None = 5.00
 
 BUDGET_TOTAL_USD = 0.50
-PRIOR_SPEND_USD = 0.370018  # calibration + Phase 6 + Phase 7 + this script's own Phase 8 run
+PRIOR_SPEND_USD = 0.423517  # calibration + Phase 6 + Phase 7 + original Phase 8 run + fix rerun
 
 
 def load_api_key() -> str:

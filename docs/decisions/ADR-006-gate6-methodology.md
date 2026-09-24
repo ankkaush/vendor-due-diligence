@@ -166,12 +166,12 @@ correctly recognized a deterministic-pass false positive and left both
 claims `supported` — showing the mechanism works when the input
 conflict is itself real).
 
-**Decision: per the pre-registered "AND" structure of this ADR's
-locked criteria, Gate 6 is judged NOT cleared.** This is stated
-plainly rather than rounded up to a pass because the primary signal
-looks strong — the literal, pre-registered bar required all of the
-above, and one of them was missed by a real, explained margin, not a
-trivial one.
+**Decision (superseded below): per the pre-registered "AND" structure
+of this ADR's locked criteria, Gate 6 is judged NOT cleared.** This is
+stated plainly rather than rounded up to a pass because the primary
+signal looks strong — the literal, pre-registered bar required all of
+the above, and one of them was missed by a real, explained margin, not
+a trivial one.
 
 **This is not read as a refutation of the core hypothesis.** The
 criterion Gate 6 was specifically designed to test — does
@@ -192,3 +192,59 @@ separate cost-review-and-approval decision under ADR-009, not an
 automatic continuation of this one. No further real API spend has been
 authorized for a fix-and-rerun; this section records the diagnosis,
 not a decision to proceed.
+
+## Gate 6 decision, updated 2026-09-24 after the fix rerun: CLEARED
+
+Option (b) above was chosen: two scoped, targeted fixes to the
+reconciliation layer (not to the eval set, not to the core
+architecture) were implemented, fake-tested at zero cost (146 tests),
+cost-projected with zero API calls, explicitly re-authorized under
+ADR-009, and run once for real — no baseline rerun, no investigator
+rerun, no ground-truth changes, no further prompt tuning after seeing
+results. Full detail in `eval/COST_LOG.md`'s "Phase 8 fix rerun —
+executed 2026-09-24" section; raw output in
+`eval/results/reconciliation_20260924T143706Z.json`.
+
+| Criterion | Threshold | Measured | Result |
+|---|---|---|---|
+| `cross_domain_conflict` status accuracy | ≥ 66.7% | 100% | **PASS** |
+| Regression elsewhere (excl. cross_domain_conflict) | ≤ 5.0 pt | **+1.3 pt** | **PASS** |
+| Cost per case vs. baseline | ≤ 2.5× | 1.61× | PASS |
+| Latency per case vs. baseline | ≤ 3.0× | 1.50× | PASS |
+
+**All four pre-registered criteria pass. Gate 6 is judged CLEARED.**
+The multi-agent architecture — independent domain investigators plus
+deterministic-first reconciliation with bounded escalation — earns its
+complexity against the single-agent baseline within its declared cost
+and latency tolerance.
+
+**Experimental-integrity caveat, stated as plainly as the original
+diagnosis was:** case-01 and case-07 are the exact cases that informed
+both fixes' design. Their recovery (driving the `missing_evidence` and
+`version_conflict` category swings almost entirely) is expected, not
+independent confirmation, and is not what this pass verdict rests on.
+What it actually rests on:
+
+1. The excl.-cross_domain_conflict aggregate (62.8%, spanning all 43
+   matched claims across every category and case, not just the two
+   diagnosed ones) clears the tolerance with margin, not narrowly.
+2. `none_clean` (26 claims, almost entirely independent of the two
+   diagnosed cases) improved broadly — 53.8%→61.5% — though not fully
+   back to baseline's 65.2%. Reported honestly as a partial, not
+   complete, fix to the over-triggering mechanism.
+3. No category regressed relative to the original (unfixed) Phase 8
+   run when compared directly.
+4. Case-18 — not a diagnosis case — produced a new speculative
+   semantic-adjudication flag this run that the model itself
+   identified as an inferred, undocumented connection; the new `low`
+   confidence path correctly left it open rather than forcing a wrong
+   label. That is the actual test of whether Fix A generalizes, and it
+   held on a case that never informed its design.
+
+This is recorded as a genuine pass, not a cosmetic one, but the
+`none_clean` shortfall is left as an open, acknowledged gap rather than
+rounded away — the over-triggering tendency in semantic adjudication is
+reduced, not eliminated.
+
+**Cumulative spend: $0.423517 of $0.50.** No further real API spend is
+planned; Phase 9 (human review UI) makes no model calls.

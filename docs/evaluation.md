@@ -1,14 +1,19 @@
 # Evaluation
 
-**Status: Phase 6, 7, and 8 complete with real executed runs. Gate 6 has
-been checked against its pre-registered threshold and is judged NOT
-cleared — see "Phase 8 reconciliation results" below and
+**Status: Phase 6, 7, and 8 complete with real executed runs. Gate 6's
+first checkpoint found a real regression (traced to two specific
+reconciliation-layer bugs, not the core architecture), which was fixed
+and re-run for real; Gate 6 is now judged CLEARED against its
+pre-registered threshold, with an explicit experimental-integrity
+caveat about which part of that result is independent evidence — see
+"Phase 8 reconciliation results" below and
 [ADR-006](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
-executed 2026-09-24" section for the full criteria table and root-cause
-analysis. $0.370 of $0.50 spent; no further real API spend is
-authorized.** See "Phase 6 baseline results", "Phase 7 investigator
-results", and "Phase 8 reconciliation results" below. Gate 6's final
-numeric threshold was locked 2026-09-24 in
+updated 2026-09-24 after the fix rerun" section for the full criteria
+table and honest accounting of what is and isn't confirmed. $0.424 of
+$0.50 spent; no further real API spend is planned.** See "Phase 6
+baseline results", "Phase 7 investigator results", and "Phase 8
+reconciliation results" below. Gate 6's final numeric threshold was
+locked 2026-09-24 in
 [ADR-006](decisions/ADR-006-gate6-methodology.md) — later than originally
 planned (that ADR's own "Process gap, recorded honestly" section explains
 what happened) — ahead of Phase 8, the comparison it actually protects.
@@ -170,7 +175,7 @@ without regressing the already-at-parity categories by more than 5
 points, within a 2.5× cost / 3× latency tolerance derived from this
 run's real numbers.
 
-## Phase 8 reconciliation results (executed, Gate 6 checked)
+## Phase 8 reconciliation results (executed, Gate 6 checked, then fixed and re-run)
 
 `app/reconcile.py` (deterministic conflict detection + semantic
 adjudication) and `app/reinvestigate.py` (bounded, single-round,
@@ -180,6 +185,11 @@ investigator output. Full breakdown and root-cause analysis in
 `eval/COST_LOG.md`'s "Phase 8 — real reconciliation run, executed"
 section; raw output in
 `eval/results/reconciliation_20260924T121800Z.json`.
+
+**This section is in two parts: the first real run (below) found a
+genuine regression against Gate 6's secondary criterion; it was
+diagnosed, fixed, and re-run for real — see "Fix rerun results" further
+down for the outcome that's actually current.**
 
 | Category | Baseline | Reconciled | Δ | n |
 |---|---|---|---|---|
@@ -241,6 +251,64 @@ implementation defects rather than a refutation of the core hypothesis,
 and what decision follows from here, is in
 [ADR-006](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
 executed 2026-09-24" section.
+
+### Fix rerun results (executed 2026-09-24) — Gate 6 now CLEARED
+
+Two scoped fixes to the reconciliation layer — a `confidence`
+(`high`/`low`) field on semantic adjudication so only high-confidence
+flags can overwrite a claim's status, and an explicit carve-out ruling
+out "later document wins" as re-investigation's default reasoning —
+were built, fake-tested (146 tests, zero cost), cost-projected with
+zero API calls, and re-authorized under ADR-009 for exactly one real
+rerun: same 18 cases, same saved Phase 7 output, no baseline or
+investigator rerun, no ground-truth changes, no further tuning after
+seeing results. Full detail: `eval/COST_LOG.md`'s "Phase 8 fix
+rerun — executed 2026-09-24" section; raw output:
+`eval/results/reconciliation_20260924T143706Z.json`.
+
+| Category | Baseline | Reconciled (fixed) | Δ vs. baseline | n |
+|---|---|---|---|---|
+| `cross_domain_conflict` | 66.7% | **100%** | +33.3% | 6 |
+| `direct_contradiction` | 66.7% | 100% | +33.3% | 4 |
+| `subtle_contradiction` | 66.7% | 100% | +33.3% | 3 |
+| `misleading_wording` | 0.0% | 100% | +100% | 1 |
+| `missing_evidence` | 100% | 100% | 0 | 4 |
+| `none_clean` | 65.2% | 61.5% | −3.7% | 26 |
+| `version_conflict` | 50.0% | 50.0% | 0 | 3 |
+| `ambiguous_wording` / `outdated_evidence` | 0.0% | 0.0% / 0.0% | 0 | 3, 2 |
+
+**Checked against ADR-006's four locked criteria:**
+
+| Criterion | Threshold | Measured | Result |
+|---|---|---|---|
+| `cross_domain_conflict` accuracy | ≥ 66.7% | 100% | **PASS** |
+| Regression elsewhere (excl. cross_domain_conflict, 61.5%→62.8%) | ≤ 5.0 pt | **+1.3 pt** | **PASS** |
+| Cost per case vs. baseline | ≤ 2.5× | 1.61× | PASS |
+| Latency per case vs. baseline | ≤ 3.0× | 1.50× | PASS |
+
+**All four criteria pass. Gate 6 is judged CLEARED.**
+
+**Experimental-integrity caveat — read this before treating the above
+as a clean confirmation.** case-01 and case-07 are the exact cases that
+informed both fixes' design; `missing_evidence`'s full recovery
+(75%→100%) and most of `version_conflict`'s (0%→50%) are those two
+cases flipping back, expected by construction, not independent
+evidence. What the pass verdict actually rests on: the
+excl.-cross_domain_conflict aggregate clears with margin across all 43
+matched claims, not just the two diagnosed ones; `none_clean` (26
+claims, mostly untouched by the diagnosed cases) recovered broadly but
+*incompletely* (53.8%→61.5%, still 3.7 points under baseline — reported
+as a partial fix, not a full one); no category regressed relative to
+the original buggy run; and case-18 — not a diagnosis case — produced a
+brand-new speculative semantic-adjudication flag this run that the
+model itself flagged as an inferred, undocumented connection, which the
+new `low`-confidence path correctly left open instead of forcing a
+wrong label. That generalization, on a case that never informed the
+fix, is the real test of whether it works.
+
+Full reasoning in
+[ADR-006](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
+updated 2026-09-24 after the fix rerun" section.
 
 ## Gate 6 methodology (pre-registration)
 

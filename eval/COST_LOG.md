@@ -543,6 +543,116 @@ the actual model-generated rationale text behind them:
   stops it from reaching for outside-of-document reasoning instead of
   saying so.
 
+## Phase 8 fix rerun — executed 2026-09-24
+
+Two targeted, scoped fixes to the reconciliation layer (`app/reconcile.py`,
+`app/reinvestigate.py`), built and fake-tested (146 tests) before any
+real spend, then run once for real against the same 18 cases, same
+saved Phase 7 investigator output, same ground truth — no baseline
+rerun, no investigator rerun, no ground-truth changes, no further
+prompt tuning after seeing results, per the explicit terms this rerun
+was authorized under.
+
+**Fix A** (semantic adjudication over-triggering + blunt overwrite):
+added a required `confidence` (`high`/`low`) field to the adjudication
+tool schema, tightened the prompt to define it and explicitly forbid
+reporting a conflict built on an inferred, undocumented dependency
+between claims about different subjects, and changed `reconcile()` so
+only `high` confidence forces `verification_status` to `contradicted`
+— `low` confidence leaves the claim untouched and opens the conflict
+for human review instead.
+
+**Fix B** (re-investigation resolving unresolvable conflicts): added an
+explicit carve-out to the re-investigation prompt — a later effective
+date alone does not establish supersession; only an explicit
+changelog, amendment clause, or explicit supersession statement in the
+documents does.
+
+**Zero-cost measurement before spending anything** (chars/4 heuristic,
+cross-checked against the one real documented data point — 339.5 est.
+vs. 334 actual for the old adjudication prompt, within 2%): projected
+~$0.058 new spend, ~$0.428 cumulative. Real run landed under that.
+
+Command run:
+```bash
+python -m eval.run_reconciliation --i-have-reviewed-the-cost-estimate \
+    --investigator-results eval/results/investigators_20260924T082006Z.json
+```
+
+| Metric | Value |
+|---|---|
+| Total new cost (this run only) | **$0.053499** |
+| Total input / output tokens | 33,509 / 3,998 |
+| Mean latency (incremental, this run only) | 2.673s/case |
+| Structured output validity | 100% |
+
+**Cumulative spend: $0.370018 (through the original Phase 8 run) +
+$0.053499 (this fix rerun) = $0.423517 of $0.50. Remaining: $0.076483.**
+
+Full raw output: `eval/results/reconciliation_20260924T143706Z.json`.
+
+### Gate 6, rechecked against ADR-006's four criteria
+
+```
+category                     baseline acc   reconciled acc    delta  total
+ambiguous_wording                    0.0%             0.0%    +0.0%  3
+cross_domain_conflict               66.7%           100.0%   +33.3%  6
+direct_contradiction                66.7%           100.0%   +33.3%  4
+misleading_wording                   0.0%           100.0%  +100.0%  1
+missing_evidence                   100.0%           100.0%    +0.0%  4
+none_clean                          65.2%            61.5%    -3.7%  26
+outdated_evidence                    0.0%             0.0%    +0.0%  2
+subtle_contradiction                66.7%           100.0%   +33.3%  3
+version_conflict                    50.0%            50.0%    +0.0%  3
+[excl. cross_domain_conflict] baseline: acc=61.5% (24/39)
+[excl. cross_domain_conflict] reconciled: acc=62.8% (27/43)
+```
+
+| Criterion | Threshold | Measured | Result |
+|---|---|---|---|
+| `cross_domain_conflict` status accuracy | ≥ 66.7% | 100% | **PASS** |
+| Regression elsewhere (excl. cross_domain_conflict) | ≤ 5.0 pt | **+1.3 pt** | **PASS** |
+| Cost/case vs. baseline (full pipeline: $0.170121 + $0.053499 = $0.223620 / 18) | ≤ 2.5× | 1.61× | PASS |
+| Latency/case vs. baseline (full pipeline: 10.332s + 2.673s) | ≤ 3.0× | 1.50× | PASS |
+
+**All four criteria pass. Gate 6 is judged CLEARED under the fixed
+implementation** — full reasoning in
+[`ADR-006`](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
+updated 2026-09-24 after the fix rerun" section, including the
+experimental-integrity caveat that follows.
+
+### What's independent evidence and what isn't — stated plainly, not glossed over
+
+case-01 and case-07 are the exact cases used to diagnose and scope
+these fixes. Their recovery is expected, not confirmation:
+
+- `missing_evidence` (75%→100%, n=4): this is entirely case-01-c6
+  flipping back — diagnosis-informed, not independent.
+- `version_conflict` (0%→50%, n=3): driven by case-07 — also
+  diagnosis-informed.
+
+The genuinely independent signal is elsewhere:
+
+- **`none_clean` (26 claims, only a small fraction touched by either
+  diagnosed case) recovered from 53.8% to 61.5% — a real, broad
+  improvement, but incomplete**: still 3.7 points below baseline's
+  65.2%, not fully back to parity. The over-triggering mechanism was
+  reduced, not eliminated — some spurious high-confidence flags likely
+  still exist elsewhere. Reported as a partial win, not a full fix.
+- **No category regressed versus the original (buggy) Phase 8 run** —
+  every category held steady or improved when compared directly
+  (`eval/compare_results.py eval/results/reconciliation_20260924T121800Z.json
+  eval/results/reconciliation_20260924T143706Z.json`).
+- **A genuinely new, previously-unseen case exercised the new `low`
+  confidence path correctly**: case-18 (not a diagnosis case) produced
+  a new speculative semantic-adjudication flag this run (backup
+  retention vs. EU data residency) that the model itself described as
+  low confidence, reasoning explicitly that the connection was
+  inferred, not stated. `reconcile()` correctly left both claims'
+  status untouched instead of forcing `contradicted` — the mechanism
+  generalizing to a case that didn't inform its design, which is the
+  actual independent evidence for whether Fix A works, not case-01.
+
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per
