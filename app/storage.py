@@ -40,3 +40,9 @@ def save_parsed_text(case_id: UUID, document_id: UUID, version_number: int, text
     path = directory / "parsed.txt"
     path.write_text(text, encoding="utf-8")
     return str(path.relative_to(DATA_ROOT.parent.parent))
+
+
+def read_parsed_text(parsed_text_ref: str) -> str:
+    """Inverse of save_parsed_text — the review UI (Phase 9) is the first
+    reader of stored parsed text; nothing before it needed one."""
+    return (DATA_ROOT.parent.parent / parsed_text_ref).read_text(encoding="utf-8")

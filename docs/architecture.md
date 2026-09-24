@@ -1,9 +1,12 @@
 # Architecture
 
-**Status: approved design (Gate 1 closed). Implemented through Phase 5
-(data model + deterministic foundation: intake, validation, parsing,
-classification, state machine). Agents (Phase 6+) don't exist yet — see
-phase status in README.**
+**Status: approved design (Gate 1 closed). Implemented through Phase 9 —
+data model, intake/validation/parsing/classification/state machine
+(Phase 5), single-agent baseline and independent investigators (Phase
+6/7), reconciliation (Phase 8, real-run-fixed and Gate 6 cleared), and
+the human review UI (Phase 9) — see phase status in README. No live
+upload-to-review HTTP pipeline yet; Phase 9's UI operates on cases
+seeded from already-executed real output (`limitations.md`).
 
 ## Problem
 
@@ -158,6 +161,46 @@ A genuinely unresolvable conflict (case-18's deliberately-planted pair,
 re-investigation round — that's the correct outcome, not a failure to
 keep trying (`tests/test_app/test_reinvestigate.py`,
 `tests/test_app/test_reconcile.py`).
+
+## Human review UI (AWAITING_HUMAN_REVIEW / FINALIZED)
+
+**Implemented (Phase 9):** [`app/web/`](../app/web/) — FastAPI +
+server-rendered Jinja2 (decision #4/#8), no HTMX yet (deliberately
+deferred progressive-enhancement polish, not a blocker: plain form
+POST/redirect works without it). Single-reviewer HTTP Basic auth
+(`app/web/auth.py`, deployment.md) gates every route — there is no
+unauthenticated route, including document content, which is rendered
+only inside the already-gated case detail page rather than through a
+separate file route (security.md's Phase 5/9 rule). The one
+state-changing endpoint, review submission, is CSRF-protected via a
+signed double-submit cookie (`app/web/csrf.py`) and reuses
+`app.state_machine.transition_case()`'s WHERE-guarded update for the
+AWAITING_HUMAN_REVIEW -> FINALIZED transition — the same idempotency
+guarantee Phase 5 proved under real concurrent threads, not a new
+mechanism for this one more caller.
+
+**The missing piece this phase had to build first:** nothing before
+Phase 9 ever wrote an `AgentResult` or `ReconciliationResult` into the
+DB's evidence graph — Phase 6/7/8's eval runners score raw JSON, never
+touch Postgres. [`app/persist.py`](../app/persist.py) is that bridge.
+One deliberate design choice in it: a conflict's resolution (whether
+from bounded re-investigation or semantic adjudication) is never
+written as a mutated or duplicated `Finding` row — data-model.md's own
+mutability table already draws this line ("Claim/EvidenceItem/Conflict
+graph: append-only for facts; mutable only for conflict resolution
+status"), so a `Finding` stays exactly what one `AgentRun` concluded,
+and the reconciler's read lives on `Conflict` (status +
+resolution_rationale), linked back via `ConflictFinding`. The review UI
+renders both side by side — the human sees the tension a conflict
+represents, not a silently overwritten status.
+
+No live orchestrator wires document upload through the real pipeline
+over HTTP yet (that's separate, larger future work needing its own
+ADR-009 cost review). Phase 9's demo cases are seeded
+(`scripts/seed_demo_case.py`) from already-executed, already-paid real
+Phase 7/8 output — zero new API spend, same reuse discipline Phase 8
+itself used — replayed through the real `app.intake` /
+`app.state_machine` / `app.persist` code paths, not synthetic data.
 
 ## Document classification (routing table)
 

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Cases — Vendor Due-Diligence Review{% endblock %}
+{% block content %}
+<h1>Cases</h1>
+{% if not cases %}
+  <p class="muted">No cases yet.</p>
+{% else %}
+<table>
+  <thead>
+    <tr><th>Vendor</th><th>Status</th><th>Created</th><th>Finalized</th></tr>
+  </thead>
+  <tbody>
+    {% for case, vendor_name in cases %}
+    <tr>
+      <td><a href="/cases/{{ case.id }}">{{ vendor_name }}</a></td>
+      <td><span class="badge status">{{ case.status }}</span></td>
+      <td class="muted">{{ case.created_at.strftime("%Y-%m-%d %H:%M") if case.created_at else "" }}</td>
+      <td class="muted">{{ case.finalized_at.strftime("%Y-%m-%d %H:%M") if case.finalized_at else "—" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

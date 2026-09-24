@@ -2,11 +2,12 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 146 tests passing through Phase 8's
-reconciliation fix (`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
-`tests/test_eval/`) — DB tests against a real local Postgres, agent tests
-against `FakeLLMClient` (zero real API calls, ADR-009), scoring tests
-against synthetic data.**
+the blueprint discussion. 163 tests passing through Phase 9
+(`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
+`tests/test_eval/` + `tests/test_web/`) — DB tests against a real local
+Postgres, agent tests against `FakeLLMClient` (zero real API calls,
+ADR-009), scoring tests against synthetic data, web route tests against
+a real FastAPI `TestClient` sharing the same transactional DB session.**
 
 - **Unit** — schema validation, state transitions, deterministic comparison
   logic, retry/backoff logic, idempotency guards, boundary-enforcement
@@ -144,3 +145,34 @@ against synthetic data.**
   prompt text itself rules out "later document wins" as a sufficient
   resolution, the exact reasoning the real run's case-07 failure relied
   on.
+
+## Delivered in Phase 9
+
+- **`app/persist.py`, tested against a real DB, not mocked**
+  (`tests/test_app/test_persist.py`): the AgentResult/ReconciliationResult
+  -> DB bridge Phase 9 had to build first. Directly asserts the design
+  choice documented in its module docstring — persisting a resolved
+  conflict never mutates or duplicates the original `Finding` rows, only
+  writes `Conflict` + `ConflictFinding` — and that a bounded
+  re-investigation call gets its own `AgentRun` + `ReInvestigation` row.
+- **Every web route requires auth, checked directly, not assumed**
+  (`tests/test_web/test_routes.py`): 401 with no credentials, 401 with
+  wrong credentials, 200 with correct ones — for both the case list and
+  case detail routes.
+- **CSRF is enforced on the one state-changing form**: a review
+  submission with a wrong or missing token is rejected with 403 before
+  it can touch the state machine.
+- **Stored XSS is checked against a literal payload, not just claimed**:
+  `test_document_derived_content_is_escaped_not_rendered_raw` seeds a
+  claim whose rationale and source_excerpt contain a real
+  `<script>alert('xss')</script>` string and asserts the rendered page
+  contains the HTML-escaped form, never the raw tag — security.md's
+  "Jinja2 autoescaping stays on everywhere" rule, exercised, not just
+  configured.
+- **Review submission is idempotent under a duplicate POST**:
+  `test_duplicate_review_submission_is_rejected_not_double_recorded`
+  submits twice with the same valid CSRF token and asserts the second
+  gets 409 and exactly one `HumanReview` row exists — reusing
+  `app.state_machine.transition_case()`'s WHERE-guarded update Phase 5
+  already proved under real concurrent threads, not a new mechanism
+  trusted without its own test.

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Vendor Due-Diligence Review{% endblock %}</title>
+  <style>
+    :root {
+      --border: #d8dce1; --muted: #6b7280; --bg: #f7f8fa; --text: #1f2430;
+      --supported: #1a7f37; --contradicted: #b42318; --unverified: #9a6700; --ambiguous: #6b7280;
+      --accent: #2454b6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      margin: 0; background: var(--bg); color: var(--text); line-height: 1.5;
+    }
+    header {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center;
+    }
+    header a { color: var(--text); text-decoration: none; font-weight: 600; }
+    main { max-width: 960px; margin: 0 auto; padding: 1.5rem; }
+    .muted { color: var(--muted); font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 0.85em; text-transform: uppercase; }
+    tr:hover { background: #fafbfc; }
+    .card {
+      background: #fff; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem 1.25rem; margin-bottom: 1rem;
+    }
+    .badge {
+      display: inline-block; padding: 0.1rem 0.55rem; border-radius: 999px;
+      font-size: 0.78em; font-weight: 600; color: #fff;
+    }
+    .badge.supported { background: var(--supported); }
+    .badge.contradicted { background: var(--contradicted); }
+    .badge.unverified { background: var(--unverified); }
+    .badge.ambiguous { background: var(--ambiguous); }
+    .badge.status { background: var(--accent); }
+    .badge.open { background: var(--contradicted); }
+    .badge.resolved { background: var(--supported); }
+    h2 { font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+    h3 { font-size: 0.95rem; margin: 0 0 0.35rem; }
+    details summary { cursor: pointer; color: var(--accent); }
+    blockquote {
+      margin: 0.4rem 0; padding: 0.4rem 0.75rem; border-left: 3px solid var(--border);
+      color: var(--muted); font-size: 0.92em; white-space: pre-wrap;
+    }
+    form.review-form label { display: block; margin: 0.5rem 0 0.15rem; font-weight: 600; }
+    form.review-form select, form.review-form textarea {
+      width: 100%; padding: 0.4rem; border: 1px solid var(--border); border-radius: 6px;
+    }
+    form.review-form button {
+      margin-top: 0.75rem; padding: 0.5rem 1.25rem; background: var(--accent); color: #fff;
+      border: none; border-radius: 6px; cursor: pointer; font-weight: 600;
+    }
+    .override-list label { font-weight: normal; display: flex; gap: 0.4rem; align-items: baseline; }
+    pre.doc-text { white-space: pre-wrap; font-size: 0.85em; background: #fafbfc; padding: 0.75rem;
+      border-radius: 6px; border: 1px solid var(--border); }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/cases">Vendor Due-Diligence Review</a>
+    {% if reviewer %}<span class="muted">Signed in as {{ reviewer }}</span>{% endif %}
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

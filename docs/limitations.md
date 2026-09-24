@@ -26,6 +26,13 @@ These are deliberate scope decisions, not gaps discovered late:
   and held to the same standard regardless of budget.
 - **Single-reviewer auth model.** No multi-user roles, permissions, or
   organizational workflow beyond one reviewer persona.
+- **No live upload-to-review pipeline yet (as of Phase 9).** The review UI
+  (`app/web/`) renders real cases, but nothing yet wires a document upload
+  through the full live pipeline (investigate → reconcile → synthesize)
+  end to end over HTTP — that orchestrator is a separate, larger piece of
+  work needing its own ADR-009 cost review before any real spend.
+  Phase 9's demo cases are seeded (`scripts/seed_demo_case.py`) from
+  already-executed, already-paid real Phase 7/8 output, not a live run.
 - **Not multi-tenant, not a SaaS product.** No billing, no account
   management, no product roadmap.
 - **The multi-agent architecture may not be justified by the evidence.**

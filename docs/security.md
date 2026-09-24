@@ -1,7 +1,10 @@
 # Security
 
 **Status: baseline established (Phase 1); expanded with concrete
-requirements (Phase 2). The full threat/mitigation/phase mapping lives in
+requirements (Phase 2); the Phase 9 rows below (Jinja2 autoescaping,
+CSRF, auth-gated document access) are implemented and tested
+(`tests/test_web/test_routes.py`), not just planned. The full
+threat/mitigation/phase mapping lives in
 [`threat-model.md`](threat-model.md) — this file covers secrets, incident
 response, and the hard coding rules that fall out of it.**
 

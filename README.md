@@ -13,9 +13,12 @@ with an explicit experimental-integrity caveat, since the two cases
 that diagnosed the bugs also informed the fix: see
 [ADR-006](docs/decisions/ADR-006-gate6-methodology.md)'s "Gate 6
 decision, updated 2026-09-24 after the fix rerun" section for the full,
-honest analysis of what is and isn't independent confirmation. 146
-tests. $0.424 of $0.50 spent; no further real API spend is planned. No
-HTTP layer yet (Phase 9+).**
+honest analysis of what is and isn't independent confirmation. **Phase 9
+(human review UI) is built and tested** — FastAPI + Jinja2, single-reviewer
+auth, CSRF-protected review submission, real cases seeded from
+already-executed real output (zero new spend). 163 tests. $0.424 of
+$0.50 spent; no further real API spend is planned. No live
+upload-to-pipeline HTTP flow yet — see `docs/limitations.md`.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -83,7 +86,12 @@ cp .env.example .env   # then fill in real values — never commit .env
 
 docker compose up -d          # isolated local Postgres, port 5437
 alembic upgrade head          # apply the schema
-pytest tests/                 # 146 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation
+pytest tests/                 # 163 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation, web
+
+# Optional: seed a few real cases (from already-executed real API output,
+# zero new spend) so the review UI has something to show:
+python -m scripts.seed_demo_case
+uvicorn app.web.main:app --reload   # http://localhost:8000/cases, basic auth from .env
 ```
 
 `pre-commit install` wires up secret scanning (gitleaks) and linting to run

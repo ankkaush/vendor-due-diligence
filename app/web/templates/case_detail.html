@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ detail.vendor_name }} — Vendor Due-Diligence Review{% endblock %}
+{% block content %}
+<p class="muted"><a href="/cases">&larr; All cases</a></p>
+<h1>{{ detail.vendor_name }}</h1>
+<p>
+  <span class="badge status">{{ detail.case.status }}</span>
+  <span class="muted">created {{ detail.case.created_at.strftime("%Y-%m-%d %H:%M") if detail.case.created_at else "" }}</span>
+</p>
+
+<h2>Evidence documents</h2>
+{% for doc in detail.documents %}
+<div class="card">
+  <h3>{{ doc.document.filename }}</h3>
+  <p class="muted">{{ doc.document.doc_type }} &middot; domain: {{ doc.document.domain }}</p>
+  <details>
+    <summary>View extracted text</summary>
+    <pre class="doc-text">{{ doc.text }}</pre>
+  </details>
+</div>
+{% endfor %}
+
+<h2>Claims and findings</h2>
+{% for domain, claims in detail.claims_by_domain.items() %}
+<h3>{{ domain }}</h3>
+{% for cv in claims %}
+<div class="card">
+  <p>
+    <span class="badge {{ cv.finding.verification_status }}">{{ cv.finding.verification_status }}</span>
+    <span class="muted">{{ cv.agent_type }}</span>
+  </p>
+  <p><strong>{{ cv.claim.subject }}</strong> — {{ cv.claim.predicate }}: {{ cv.claim.value }}{% if cv.claim.unit %} {{ cv.claim.unit }}{% endif %}</p>
+  <blockquote>{{ cv.finding.rationale }}</blockquote>
+  <p class="muted">Source: {{ cv.claim.source_location }}</p>
+  <blockquote>{{ cv.claim.source_excerpt }}</blockquote>
+  {% if cv.evidence_items %}
+  <details>
+    <summary>{{ cv.evidence_items|length }} supporting evidence item(s)</summary>
+    {% for ev in cv.evidence_items %}
+    <p class="muted">{{ ev.location }}</p>
+    <blockquote>{{ ev.excerpt }}</blockquote>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% endfor %}
+{% endfor %}
+
+<h2>Conflicts</h2>
+{% if not detail.conflicts %}
+  <p class="muted">No conflicts found during reconciliation.</p>
+{% endif %}
+{% for cv in detail.conflicts %}
+<div class="card">
+  <p>
+    <span class="badge {{ cv.conflict.status }}">{{ cv.conflict.status }}</span>
+    <span class="muted">{{ cv.conflict.conflict_type }} &middot; via {{ cv.conflict.resolution_method or "unresolved" }}</span>
+  </p>
+  <p class="muted">Concerns:</p>
+  <ul>
+    {% for claim_view in cv.claims %}
+    <li>{{ claim_view.claim.subject }} — {{ claim_view.claim.predicate }}: {{ claim_view.claim.value }}
+      (<span class="badge {{ claim_view.finding.verification_status }}">{{ claim_view.finding.verification_status }}</span>)</li>
+    {% endfor %}
+  </ul>
+  {% if cv.conflict.resolution_rationale %}
+  <blockquote>{{ cv.conflict.resolution_rationale }}</blockquote>
+  {% endif %}
+</div>
+{% endfor %}
+
+<h2>Human review</h2>
+{% for review in detail.human_reviews %}
+<div class="card">
+  <p>
+    <span class="badge status">{{ review.decision }}</span>
+    <span class="muted">{{ review.reviewer_id }} &middot; {{ review.decided_at.strftime("%Y-%m-%d %H:%M") if review.decided_at else "" }}</span>
+  </p>
+  {% if review.comments %}<blockquote>{{ review.comments }}</blockquote>{% endif %}
+</div>
+{% endfor %}
+
+{% if detail.can_review %}
+<div class="card">
+  <form class="review-form" method="post" action="/cases/{{ detail.case.id }}/review">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="decision">Decision</label>
+    <select id="decision" name="decision" required>
+      {% for d in valid_decisions %}
+      <option value="{{ d }}">{{ d }}</option>
+      {% endfor %}
+    </select>
+    <label for="comments">Comments</label>
+    <textarea id="comments" name="comments" rows="3"></textarea>
+    <label>Override AI findings (optional)</label>
+    <div class="override-list">
+      {% for domain, claims in detail.claims_by_domain.items() %}
+        {% for cv in claims %}
+        <label>
+          <input type="checkbox" name="override_finding_ids" value="{{ cv.finding.id }}">
+          {{ cv.claim.subject }} — {{ cv.claim.predicate }}
+          (currently <span class="badge {{ cv.finding.verification_status }}">{{ cv.finding.verification_status }}</span>)
+        </label>
+        {% endfor %}
+      {% endfor %}
+    </div>
+    <button type="submit">Submit review and finalize case</button>
+  </form>
+</div>
+{% elif detail.case.status != "FINALIZED" %}
+<p class="muted">This case isn't ready for review yet (currently {{ detail.case.status }}).</p>
+{% endif %}
+{% endblock %}
