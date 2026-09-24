@@ -43,8 +43,11 @@ VALID_RESPONSE = {
 }
 
 DOCS = [
-    CaseDocument(document_id="doc-questionnaire", filename="q.md", text="We have completed..."),
-    CaseDocument(document_id="doc-soc", filename="soc.md", text="SOC 2 Type II"),
+    CaseDocument(
+        document_id="doc-questionnaire", filename="q.md",
+        text="We have completed...", domain="security",
+    ),
+    CaseDocument(document_id="doc-soc", filename="soc.md", text="SOC 2 Type II", domain="security"),
 ]
 
 

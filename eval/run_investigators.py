@@ -1,21 +1,18 @@
-"""Run the real single-agent baseline against all 18 eval cases (Phase 6).
+"""Run the real independent investigators against all 18 eval cases
+(Phase 7). Raw comparison only — both investigators' claims are pooled
+and scored against ground truth exactly as the baseline is, with no
+deterministic reconciliation or conflict detection (that's Phase 8;
+architecture.md's Phase 7 scope is explicitly "NOT yet: reconciliation
+logic beyond raw comparison").
 
-This is the real, budget-tracked evaluation checkpoint ADR-009 requires
-review for — distinct from the smoke tests (eval/smoke_test.py), which
-only proved connectivity and calibrated cost. This script makes 18 real
-calls against the actual baseline agent (app/agents/baseline.py), not a
-toy prompt.
+Same review discipline as eval/run_baseline.py (ADR-009): refuses to run
+without --i-have-reviewed-the-cost-estimate, checks cumulative spend
+against the $0.50 ceiling before every case (now two calls per case, not
+one), and halts before any call that would exceed it.
 
-Refuses to run without --i-have-reviewed-the-cost-estimate, same
-discipline as the smoke test. Every real call's cost is accumulated and
-checked against the remaining $0.50 budget (eval/COST_LOG.md) as it
-runs — if a case would push cumulative spend over budget, execution
-stops before that call, not after.
-
-Usage (only after review/approval; run as a module, not a bare script,
-so `app`/`eval` imports resolve from the repo root):
-    python -m eval.run_baseline --i-have-reviewed-the-cost-estimate
-    python -m eval.run_baseline --i-have-reviewed-the-cost-estimate --cases case-11
+Usage (only after review/approval):
+    python -m eval.run_investigators --i-have-reviewed-the-cost-estimate
+    python -m eval.run_investigators --i-have-reviewed-the-cost-estimate --cases case-08
 """
 
 import argparse
@@ -26,7 +23,8 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from app.agents.baseline import CaseDocument, InvalidAgentOutputError, run_baseline
+from app.agents.investigator import run_investigator
+from app.agents.schema import CaseDocument, InvalidAgentOutputError
 from app.llm.client import AnthropicLLMClient
 from app.retry import RetriesExhaustedError
 from eval.scoring import CaseMetrics, aggregate, score_case
@@ -40,13 +38,12 @@ COST_LOG_PATH = REPO_ROOT / "eval" / "COST_LOG.md"
 MODEL = "claude-haiku-4-5-20251001"
 
 # Sourced 2026-09-23 from https://platform.claude.com/docs/en/about-claude/pricing
-# — same rates already used and verified in eval/smoke_test.py.
 PRICE_PER_MTOK_INPUT: float | None = 1.00
 PRICE_PER_MTOK_OUTPUT: float | None = 5.00
 
 BUDGET_TOTAL_USD = 0.50
-# Sum of every real-call row already in COST_LOG.md before this run.
-PRIOR_SPEND_USD = 0.147290  # calibration ($0.008130) + Phase 6 baseline run ($0.139160)
+# Sum of every real-call row already in eval/COST_LOG.md before this run.
+PRIOR_SPEND_USD = 0.147290  # calibration + Phase 6 baseline run
 
 
 def load_api_key() -> str:
@@ -80,33 +77,50 @@ def load_case(case_id: str) -> tuple[dict, list[CaseDocument]]:
 
 def run_one_case(client, case_id: str) -> dict:
     ground_truth, documents = load_case(case_id)
-    start = time.monotonic()
-    try:
-        result = run_baseline(client, model=MODEL, documents=documents)
-        latency_s = time.monotonic() - start
-        cost = (
-            (result.input_tokens / 1_000_000) * PRICE_PER_MTOK_INPUT
-            + (result.output_tokens / 1_000_000) * PRICE_PER_MTOK_OUTPUT
-        )
-        metrics = score_case(
-            ground_truth, result.claims, injection_detected=result.injection_detected,
-            input_tokens=result.input_tokens, output_tokens=result.output_tokens,
-            cost_usd=cost, latency_s=latency_s, retry_count=0,
-        )
-        raw = {
-            "claims": result.claims,
-            "injection_detected": result.injection_detected,
-            "injection_note": result.injection_note,
-        }
-    except (InvalidAgentOutputError, RetriesExhaustedError) as exc:
-        latency_s = time.monotonic() - start
-        metrics = score_case(
-            ground_truth, None, injection_detected=None,
-            latency_s=latency_s, error=str(exc),
-        )
-        raw = {"error": str(exc)}
+    per_agent = {}
+    combined_claims = []
+    injection_detected = False
+    total_input_tokens = total_output_tokens = 0
+    error = None
 
-    return {"case_id": case_id, "metrics": asdict(metrics), "raw_output": raw}
+    for agent_type in ("security_investigator", "privacy_investigator"):
+        start = time.monotonic()
+        try:
+            result = run_investigator(
+                client, model=MODEL, agent_type=agent_type, documents=documents,
+            )
+            latency_s = time.monotonic() - start
+            per_agent[agent_type] = {
+                "claims": result.claims,
+                "injection_detected": result.injection_detected,
+                "injection_note": result.injection_note,
+                "input_tokens": result.input_tokens,
+                "output_tokens": result.output_tokens,
+                "latency_s": latency_s,
+            }
+            combined_claims.extend(result.claims)
+            injection_detected = injection_detected or result.injection_detected
+            total_input_tokens += result.input_tokens
+            total_output_tokens += result.output_tokens
+        except (InvalidAgentOutputError, RetriesExhaustedError) as exc:
+            per_agent[agent_type] = {"error": str(exc)}
+            error = f"{agent_type}: {exc}"
+
+    cost = (
+        (total_input_tokens / 1_000_000) * PRICE_PER_MTOK_INPUT
+        + (total_output_tokens / 1_000_000) * PRICE_PER_MTOK_OUTPUT
+    )
+
+    if error is not None:
+        metrics = score_case(ground_truth, None, injection_detected=None, error=error)
+    else:
+        metrics = score_case(
+            ground_truth, combined_claims, injection_detected=injection_detected,
+            input_tokens=total_input_tokens, output_tokens=total_output_tokens,
+            cost_usd=cost, latency_s=sum(a.get("latency_s", 0) for a in per_agent.values()),
+        )
+
+    return {"case_id": case_id, "metrics": asdict(metrics), "per_agent": per_agent}
 
 
 def confirm_pricing_is_set() -> None:
@@ -118,10 +132,7 @@ def confirm_pricing_is_set() -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--i-have-reviewed-the-cost-estimate", action="store_true")
-    parser.add_argument(
-        "--cases", nargs="*", default=None,
-        help="Run only these case IDs (e.g. case-01 case-10). Default: all 18.",
-    )
+    parser.add_argument("--cases", nargs="*", default=None)
     args = parser.parse_args()
 
     if not args.i_have_reviewed_the_cost_estimate:
@@ -150,7 +161,7 @@ def main() -> int:
             )
             break
 
-        print(f"Running {case_id}...")
+        print(f"Running {case_id} (security + privacy investigators)...")
         outcome = run_one_case(client, case_id)
         results.append(outcome)
         case_cost = outcome["metrics"]["cost_usd"]
@@ -165,7 +176,7 @@ def main() -> int:
 
     RESULTS_DIR.mkdir(exist_ok=True)
     timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
-    out_path = RESULTS_DIR / f"baseline_{timestamp}.json"
+    out_path = RESULTS_DIR / f"investigators_{timestamp}.json"
     out_path.write_text(json.dumps({
         "model": MODEL, "results": results, "aggregate": asdict(agg),
     }, indent=2))

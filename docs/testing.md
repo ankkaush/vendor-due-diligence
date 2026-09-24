@@ -2,7 +2,7 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 104 tests passing through Phase 6
+the blueprint discussion. 123 tests passing through Phase 7
 (`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
 `tests/test_eval/`) — DB tests against a real local Postgres, agent tests
 against `FakeLLMClient` (zero real API calls, ADR-009), scoring tests
@@ -79,6 +79,29 @@ against synthetic data.**
   tests found (a split claim matches and counts as an "extra," not a
   penalty).
 
-Key boundary test to be written in Phase 7:
-`test_investigator_context_has_no_cross_agent_data_even_when_available` —
-see [`agent-boundaries.md`](agent-boundaries.md).
+## Delivered in Phase 7
+
+- **The named boundary test**:
+  `tests/test_agents/test_boundary_enforcement.py::test_investigator_context_has_no_cross_agent_data_even_when_available`
+  — see [`agent-boundaries.md`](agent-boundaries.md) for what it proves
+  and its explicit scope note (document-level isolation, not yet
+  DB-level, since no persisted Finding data exists this phase). A
+  companion test asserts the guarantee structurally too:
+  `run_investigator`'s signature has no parameter through which another
+  agent's output could ever be passed in, and a third confirms the
+  isolation holds regardless of execution order.
+- **A real edge case found by measuring, not by running**: sizing the
+  real Phase 7 evaluation cost before spending anything revealed 9 of 36
+  case/investigator pairs across the 18 real cases have zero documents in
+  that investigator's domain (e.g. case-03 has no privacy documents at
+  all). `app/agents/investigator.py` now skips the API call entirely in
+  that case — tested in `test_empty_domain_skips_the_api_call_entirely`,
+  which passes a `FakeLLMClient` with zero scripted responses so the test
+  fails loudly if a call is ever attempted.
+- **Rubric parity across architectures**:
+  `test_both_investigators_share_the_identical_verification_rubric`
+  asserts the exact same `VERIFICATION_RUBRIC` text
+  (`app/agents/prompts.py`) appears in both investigators' prompts and
+  matches what the Phase 6 baseline uses — Gate 6 needs to compare
+  architectures, not accidentally compare differently-worded grading
+  standards (ADR-006).

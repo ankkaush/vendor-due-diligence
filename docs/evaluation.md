@@ -1,9 +1,11 @@
 # Evaluation
 
-**Status: Phase 6 complete. Real baseline run executed 2026-09-24 against
-all 18 cases (`eval/COST_LOG.md`, `eval/results/baseline_20260924T080217Z.json`)
-— see "Phase 6 baseline results" below. This is now the number Phase
-7/8's multi-agent architecture has to beat at Gate 6.**
+**Status: Phase 6 complete (real baseline run executed 2026-09-24 —
+"Phase 6 baseline results" below, the number multi-agent has to beat at
+Gate 6). Phase 7 built and unit-tested — investigators + context builder,
+30 tests against `FakeLLMClient` — with the real 18-case run costed
+(~$0.134 projected, `eval/COST_LOG.md`) and pending review before
+execution.**
 
 Evaluation is designed before the pipeline, not after. See
 [ADR-006](decisions/ADR-006-gate6-methodology.md) for the full Gate 6

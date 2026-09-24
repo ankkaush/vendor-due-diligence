@@ -225,8 +225,55 @@ before any call that would exceed it.
 **Status: executed and reviewed** — see "Phase 6 — real baseline run"
 above for actual results.
 
+## Phase 7 — investigator run projection (pending review, not yet executed)
+
+`app/agents/investigator.py` and `app/agents/context_builder.py` are
+built and unit-tested against `FakeLLMClient` (30 tests,
+`tests/test_agents/`). `eval/run_investigators.py` runs both
+investigators against all 18 real cases, pools their claims (raw
+comparison, no reconciliation — Phase 8), and scores against the same
+ground truth `eval/run_baseline.py` used.
+
+**A real finding from sizing this before spending anything:** measuring
+the actual `build_context()` output against all 18 cases showed 9 of the
+36 case/investigator pairs have zero documents in that domain (e.g.
+case-03 has no privacy documents at all). `run_investigator` now skips
+the API call entirely in that case rather than sending an empty evidence
+package — see `docs/agent-boundaries.md` and
+`tests/test_agents/test_investigator.py::test_empty_domain_skips_the_api_call_entirely`.
+This means the real run is **27 calls, not 36** — the projection below
+already reflects that.
+
+| Component | Measured value |
+|---|---|
+| Security investigator system prompt | 1,043 tokens |
+| Privacy investigator system prompt | 1,037 tokens |
+| Tool schema + forced-tool-choice overhead (unchanged from Phase 6) | 346 + 588 tokens |
+| Actual calls that will be made (of 36 possible) | 27 |
+| Total user-message chars, all non-empty calls | 25,026 (15,304 security + 9,722 privacy) |
+
+| Scenario | Input tok | Output tok | Cost |
+|---|---|---|---|
+| Expected (1.5× relevant claims, 180 tok/claim) | 59,557 | ~14,850 | **~$0.134** |
+| Conservative bound (2× claims, 220 tok/claim) | 59,557 | ~17,800* | **~$0.178** |
+
+\* conservative-bound output recomputed at the higher per-claim rate;
+see the calculation this table is drawn from for the exact per-case
+breakdown.
+
+After the $0.147290 already spent (calibration + Phase 6 baseline):
+**expected cumulative ~$0.281, worst case ~$0.325 — leaving $0.175–$0.219
+of the $0.50 budget** for Phase 8's reconciliation/re-investigation calls,
+once those exist.
+
+**Not yet run.** Per ADR-009, this needs explicit review and approval
+before executing:
+
+```bash
+python -m eval.run_investigators --i-have-reviewed-the-cost-estimate
+```
+
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per
-ADR-009. Next expected real spend: Phase 7's investigator agents, once
-built — same review process.
+ADR-009.

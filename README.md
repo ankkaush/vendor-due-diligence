@@ -1,11 +1,13 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phase 6 (strong single-agent baseline) complete,
-including the real evaluation run. 100% structured-output validity, 100%
-injection detection, 59.8% status accuracy on matched claims — this is
-now the measured bar Phase 7's multi-agent architecture has to beat at
-Gate 6 (`docs/evaluation.md`). $0.147 of the $0.50 API budget spent.
-No multi-agent investigators yet (Phase 7); no HTTP layer yet either.**
+**Status: early build — Phase 6 (strong single-agent baseline) complete
+with a real measured bar to beat at Gate 6 (100% structured-output
+validity, 100% injection detection, 59.8% status accuracy —
+`docs/evaluation.md`). Phase 7 (independent investigators) built and
+unit-tested — 123 tests, zero real API calls beyond Phase 6's. The real
+multi-agent evaluation run is costed (~$0.134 projected,
+`eval/COST_LOG.md`) and pending review. $0.147 of $0.50 spent so far.
+No reconciliation yet (Phase 8); no HTTP layer yet either.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -73,7 +75,7 @@ cp .env.example .env   # then fill in real values — never commit .env
 
 docker compose up -d          # isolated local Postgres, port 5437
 alembic upgrade head          # apply the schema
-pytest tests/                 # 104 tests: schema, intake, parsing, state machine, baseline agent, scoring
+pytest tests/                 # 123 tests: schema, intake, parsing, state machine, agents, boundaries, scoring
 ```
 
 `pre-commit install` wires up secret scanning (gitleaks) and linting to run
