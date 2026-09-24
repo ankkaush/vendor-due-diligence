@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
+from app.observability import configure_sentry
 from app.web.routes import router
 
 
@@ -29,6 +30,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def create_app() -> FastAPI:
+    configure_sentry()  # no-op without SENTRY_DSN set (observability.md)
     app = FastAPI(title="Vendor Due-Diligence — Human Review")
     app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(router)

@@ -23,6 +23,8 @@ dependencies = [
     "jinja2>=3.1",           # Phase 9: server-rendered templates, autoescape on (security.md)
     "python-multipart>=0.0.9",  # Phase 9: form parsing for the review decision POST
     "itsdangerous>=2.2",     # Phase 9: signed CSRF tokens (security.md's CSRF rule)
+    "langfuse>=2.0",         # Phase 10: LLM tracing (observability.md) — no-op without keys
+    "sentry-sdk>=2.0",       # Phase 10: app error tracking (observability.md) — no-op without a DSN
 ]
 
 [project.optional-dependencies]

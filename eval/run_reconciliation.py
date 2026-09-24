@@ -33,6 +33,7 @@ from pathlib import Path
 
 from app.agents.schema import AgentResult, CaseDocument
 from app.llm.client import AnthropicLLMClient
+from app.observability import TracedLLMClient
 from app.reconcile import reconcile
 from eval.scoring import CaseMetrics, aggregate, score_case
 
@@ -151,7 +152,9 @@ def main() -> int:
 
     confirm_pricing_is_set()
     api_key = load_api_key()
-    client = AnthropicLLMClient(api_key=api_key)
+    # TracedLLMClient no-ops without LANGFUSE_PUBLIC_KEY/SECRET_KEY set
+    # (observability.md) — wrapping here costs nothing when unconfigured.
+    client = TracedLLMClient(AnthropicLLMClient(api_key=api_key))
 
     saved = json.loads(Path(args.investigator_results).read_text())
     saved_by_case = {r["case_id"]: r for r in saved["results"]}

@@ -16,9 +16,15 @@ decision, updated 2026-09-24 after the fix rerun" section for the full,
 honest analysis of what is and isn't independent confirmation. **Phase 9
 (human review UI) is built and tested** — FastAPI + Jinja2, single-reviewer
 auth, CSRF-protected review submission, real cases seeded from
-already-executed real output (zero new spend). 163 tests. $0.424 of
-$0.50 spent; no further real API spend is planned. No live
-upload-to-pipeline HTTP flow yet — see `docs/limitations.md`.**
+already-executed real output (zero new spend). **Phase 10 (security test
+audit + observability) is complete** — every `threat-model.md` §3 row is
+checked against a real test (section 7's audit table), seven genuine
+gaps found and closed, three honestly recorded as open and deferred to
+Phase 11/12 where they were always scoped to belong; Langfuse/Sentry
+integration (`app/observability.py`) is built and tested against a fake
+client, no account required. 183 tests. $0.424 of $0.50 spent; no
+further real API spend is planned. No live upload-to-pipeline HTTP flow
+yet — see `docs/limitations.md`.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -86,7 +92,7 @@ cp .env.example .env   # then fill in real values — never commit .env
 
 docker compose up -d          # isolated local Postgres, port 5437
 alembic upgrade head          # apply the schema
-pytest tests/                 # 163 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation, web
+pytest tests/                 # 183 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation, web, security
 
 # Optional: seed a few real cases (from already-executed real API output,
 # zero new spend) so the review UI has something to show:

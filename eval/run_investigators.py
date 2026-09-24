@@ -26,6 +26,7 @@ from pathlib import Path
 from app.agents.investigator import run_investigator
 from app.agents.schema import CaseDocument, InvalidAgentOutputError
 from app.llm.client import AnthropicLLMClient
+from app.observability import TracedLLMClient
 from app.retry import RetriesExhaustedError
 from eval.scoring import CaseMetrics, aggregate, score_case
 
@@ -146,7 +147,9 @@ def main() -> int:
 
     confirm_pricing_is_set()
     api_key = load_api_key()
-    client = AnthropicLLMClient(api_key=api_key)
+    # TracedLLMClient no-ops without LANGFUSE_PUBLIC_KEY/SECRET_KEY set
+    # (observability.md) — wrapping here costs nothing when unconfigured.
+    client = TracedLLMClient(AnthropicLLMClient(api_key=api_key))
 
     case_ids = args.cases or sorted(p.stem for p in GROUND_TRUTH_DIR.glob("case-*.json"))
 

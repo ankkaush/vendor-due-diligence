@@ -150,3 +150,36 @@ def test_parse_timeout_fires_on_a_hung_parse():
     with pytest.raises(ParsingError, match="exceeded 1s timeout"):
         with parsing._timeout(1):
             time.sleep(2)
+
+
+def test_parse_document_takes_bytes_only_never_a_filesystem_path():
+    """threat-model.md §3.2's last row: parser errors must not leak
+    server file paths to a client. parse_document has no code path that
+    could — it only ever reads from an in-memory BytesIO wrapping the
+    bytes argument, never touching a real path — checked directly against
+    its signature, not just trusted from reading the code."""
+    import inspect
+
+    params = inspect.signature(parse_document).parameters
+    assert "path" not in params
+    assert "filename" not in params
+    assert "content" in params
+
+
+@pytest.mark.parametrize("mime_type,content", [
+    ("application/pdf", b"%PDF-not-actually-valid"),
+    ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", b"not a zip"),
+    ("text/plain", b"\xff\xfe\x00\x01 not valid utf-8"),
+])
+def test_parse_errors_never_mention_a_filesystem_path(mime_type, content):
+    """The generic-client-error half of this mitigation (never showing a
+    ParsingError's raw text to an HTTP client) has no endpoint to test
+    against yet — no live upload route exists (limitations.md). What's
+    testable now: the error text itself never contains anything
+    path-shaped, since nothing here ever had a path to begin with."""
+    with pytest.raises(ParsingError) as exc_info:
+        parse_document(content, mime_type)
+    message = str(exc_info.value)
+    assert "/" not in message.replace("word/document.xml", "")  # only expected literal slash
+    assert "Users" not in message
+    assert "tmp" not in message.lower()

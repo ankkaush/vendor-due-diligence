@@ -1,10 +1,10 @@
 # Threat Model
 
-**Status: Phase 2 — approved, pre-implementation. This is the authoritative
-security specification; Phase 5/7/9/10 implementation must satisfy every row
-below, and Phase 10's security test suite verifies each one. Threat
-modeling done after the code exists is theater — this file is written
-before any application code, and every future phase is expected to be
+**Status: Phase 2's specification is implemented through Phase 10 — see
+section 7 for the row-by-row test audit executed 2026-09-24, including
+what's genuinely still open and which later phase (11/12) it's scoped
+to. Threat modeling done after the code exists is theater — this file
+was written before any application code, and every phase since has been
 checked against it, not the other way around.**
 
 ## 1. System overview and trust zones
@@ -143,3 +143,56 @@ Every threat above has a named mitigation and an assigned implementation
 phase. This satisfies Phase 2's exit criterion. Phase 10's security test
 suite (`testing.md`) is required to exercise each row with an actual test,
 not just implement the mitigation and assume it holds.
+
+## 7. Phase 10 security test audit (executed 2026-09-24)
+
+Every row from section 3, checked against its actual test — not
+reasserted from memory. Most mitigations already had a dedicated test
+from the phase that built them; seven genuine gaps were found and closed
+in this phase (marked **new**). Three rows are honestly recorded as
+partially covered or not yet applicable, because the code they'd test
+doesn't exist yet (no live upload endpoint, no Phase 12 deployment) —
+not silently marked done.
+
+| # | Threat | Test | Status |
+|---|---|---|---|
+| 3.1.1 | Unauthenticated upload/review routes | `tests/test_web/test_routes.py::test_cases_list_requires_auth`, `::test_case_detail_requires_auth`, `::test_review_submission_requires_auth` | Covered for review routes; no live upload route exists yet (`limitations.md`) |
+| 3.1.2 | Oversized upload | `tests/test_app/test_intake.py::test_validate_upload_rejects_oversized_file` | Covered |
+| 3.1.3 | MIME/type spoofing | `test_validate_upload_rejects_mime_content_mismatch`, `::test_validate_upload_rejects_binary_content_claiming_to_be_text`, `::test_validate_upload_rejects_disallowed_mime_type` | Covered |
+| 3.1.4 | Adversarial filenames in shell/subprocess | `tests/test_app/test_parsing.py::test_parse_document_takes_bytes_only_never_a_filesystem_path` **(new)** | Covered — structural: no subprocess/path parameter exists at all |
+| 3.1.5 | Enumerable case/document IDs | `tests/test_db/test_schema_constraints.py::test_every_externally_referenced_entity_uses_a_uuid_primary_key` **(new)** | Covered |
+| 3.1.6 | Rapid/duplicate submission | `tests/test_db/test_schema_constraints.py::test_duplicate_non_terminal_agent_run_is_rejected` | Idempotency covered; rate limiting itself is Phase 12 (`deployment.md`), not built yet |
+| 3.2.1 | XXE via DOCX | `tests/test_app/test_parsing.py::test_parse_docx_xxe_attack_is_rejected` | Covered |
+| 3.2.2 | Zip-bomb via DOCX | `::test_parse_docx_rejects_declared_size_over_cap` | Covered |
+| 3.2.3 | Parser hang | `::test_parse_timeout_fires_on_a_hung_parse` | Covered |
+| 3.2.4 | Parser errors leaking paths | `::test_parse_errors_never_mention_a_filesystem_path` **(new)** | Covered at the error-message level; the generic-client-error half has no HTTP endpoint to test against yet |
+| 3.3.1 | Direct prompt injection | `tests/test_agents/test_baseline.py::test_system_prompt_instructs_injection_resistance`, `::test_injection_detected_is_surfaced_without_affecting_other_claims` | Covered |
+| 3.3.2 | Indirect injection via filename/metadata | `tests/test_agents/test_metadata_injection.py::test_crafted_filename_never_reaches_the_system_prompt`, `::test_crafted_filename_appears_only_as_a_document_attribute_value` **(new)** | Covered |
+| 3.3.3 | Cross-agent contamination | `tests/test_agents/test_boundary_enforcement.py` (all three tests) | Covered |
+| 3.3.4 | Cross-case data leakage into agent context | `tests/test_db/test_evidence_chain.py::test_cross_case_isolation` (raw queries), `tests/test_web/test_cross_case_isolation.py::test_get_case_detail_never_returns_another_cases_claims_documents_or_conflicts` **(new)** | Covered for the persisted query path Phase 9 added; no live per-case context-fetch orchestrator exists yet to test beyond that |
+| 3.3.5 | Secret/system-prompt exfiltration | `tests/test_agents/test_baseline.py::test_missing_required_field_raises_invalid_agent_output_and_is_not_retried`, `::test_invalid_enum_value_is_rejected` | Covered |
+| 3.4.1 | MITM in transit | n/a | Inherited from TLS, not this codebase's to test |
+| 3.4.2 | Provider outage/timeout/retry | `tests/test_app/test_retry.py`, `tests/test_agents/test_investigator.py::test_retryable_error_is_retried_then_succeeds`, `tests/test_agents/test_baseline.py::test_retryable_api_error_is_retried_then_succeeds`, `::test_non_retryable_api_error_is_not_retried`, `::test_exhausting_retries_on_persistent_retryable_errors` | Covered |
+| 3.4.3 | Malformed output accepted downstream | `test_missing_required_field_raises_invalid_agent_output_and_is_not_retried`, `test_invalid_enum_value_is_rejected` | Covered |
+| 3.4.4 | Cost blowout | Bounded retries (above); `tests/test_db/test_schema_constraints.py::test_second_reinvestigation_round_is_rejected` (decision #13's cap) | Covered for retries/re-investigation; a per-case cost ceiling *enforced* (not just measured) is Phase 17, not reached yet |
+| 3.5.1 | SQL injection | `tests/test_db/test_sql_injection.py` (both tests) **(new)** | Covered |
+| 3.5.2 | Overly privileged DB credentials | — | Operational/infrastructure practice (which Postgres role is used), not something this codebase's test suite can exercise |
+| 3.5.3 | Connection exhaustion | — | Pool limits are a Phase 12 deployment-time configuration, not set yet |
+| 3.5.4 | Concurrent writes corrupting case state | `tests/test_app/test_state_machine.py::test_concurrent_duplicate_transition_attempts_exactly_one_wins`, `tests/test_db/test_schema_constraints.py::test_duplicate_non_terminal_agent_run_is_rejected` | Covered |
+| 3.6.1 | Stored XSS | `tests/test_web/test_routes.py::test_document_derived_content_is_escaped_not_rendered_raw` | Covered |
+| 3.6.2 | CSRF | `::test_review_submission_requires_csrf_token` | Covered |
+| 3.6.3 | Credential brute-forcing | — | **Not implemented.** Explicitly scoped to Phase 12 (`deployment.md`'s "required production hygiene"); recorded here rather than silently left off this table |
+| 3.6.4 | Direct document access bypassing auth | `tests/test_web/test_routes.py::test_no_separate_unauthenticated_document_route_exists` **(new)** | Covered |
+| 3.7.1 | Full document text/secrets in traces | `tests/test_app/test_observability.py::test_redact_for_trace_truncates_and_hashes_the_full_text`, `::test_traced_client_records_a_generation_with_redacted_input_and_usage` **(new)** | Covered |
+| 3.7.2 | Silent audit trail tampering | `tests/test_db/test_schema_constraints.py::test_append_only_tables_reject_update`, `::test_append_only_tables_reject_delete` | Covered |
+| 3.7.3 | CI/CD secret exposure | — | Phase 11, not reached yet — correctly out of scope for Phase 10 |
+
+**Honest summary, counted against all 30 rows above: 20 fully covered by
+a named test; 5 partially covered, with the uncovered remainder honestly
+scoped to a specific later phase in the same row rather than glossed
+over (upload-route auth, parser error client-facing behavior, live
+context-fetch orchestration, per-case cost enforcement, rate limiting's
+idempotency half); 2 not applicable to a code test suite at all (inherited
+TLS, DB-role operational practice); 3 explicitly deferred to Phase 11/12,
+where `deployment.md`/`threat-model.md` already scoped them before this
+phase started. Nothing here is marked covered that isn't.**

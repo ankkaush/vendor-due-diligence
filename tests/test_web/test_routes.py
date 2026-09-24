@@ -8,6 +8,7 @@ finalized, idempotent under a duplicate submit).
 """
 
 from app.db.models import AgentRun, Case, Claim, DocumentVersion, EvidenceDocument, Finding, Vendor
+from app.web.routes import router
 from tests.test_web.conftest import REVIEWER_AUTH
 
 
@@ -101,6 +102,22 @@ def test_case_detail_404_for_unknown_case(client):
 
 
 # --- XSS / autoescaping --------------------------------------------------
+
+
+def test_no_separate_unauthenticated_document_route_exists():
+    """threat-model.md §3.6: "Every document fetch is gated by the same
+    auth + case_id check as the case view itself — no separate
+    unauthenticated file route." Verified structurally against the real
+    route table: document text is embedded only in the already-auth-
+    gated /cases/{case_id} response (app/web/queries.py), and no other
+    route pattern exists at all — not a claim checked by reading the
+    code, but an assertion against the actual registered routes."""
+    paths = {r.path for r in router.routes}
+    assert paths == {"/", "/cases", "/cases/{case_id}", "/cases/{case_id}/review"}
+    for path in paths:
+        assert "document" not in path
+        assert "file" not in path
+        assert "download" not in path
 
 
 def test_document_derived_content_is_escaped_not_rendered_raw(client, db_session):

@@ -14,12 +14,15 @@ findings are never an input to context construction in the first place.
 That is the isolation: not access control on data that could theoretically
 be reached, but the absence of any path to it at all.
 
-What this does NOT yet cover: once a real orchestrator persists AgentRun/
-Finding rows to the database (a later phase), THAT boundary — a context
-builder querying the DB must have no path to another agent's Finding rows
-— needs its own equivalent guarantee and its own test in that shape,
-mirroring this one. Scoped out here deliberately; there is no persisted
-Finding data for this phase to leak in the first place.
+The equivalent DB-level guarantee this note originally deferred: Phase 9
+built the persistence layer (app/persist.py) and the review UI's query
+layer (app/web/queries.py), and Phase 10 closed the gap this paragraph
+named in advance —
+tests/test_web/test_cross_case_isolation.py::test_get_case_detail_never_returns_another_cases_claims_documents_or_conflicts
+proves get_case_detail() never returns another case's Claim/Finding/
+Conflict rows even when both exist in the same database at once, the
+same shape of guarantee this module proves for in-memory context
+construction, mirrored for the persisted path.
 """
 
 from app.agents.schema import CaseDocument

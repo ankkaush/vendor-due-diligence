@@ -157,3 +157,26 @@ def test_append_only_tables_reject_delete(db_session, make_row):
     with pytest.raises(ProgrammingError, match="append-only"):
         db_session.execute(table.delete().where(table.c.id == row_id))
         db_session.flush()
+
+
+def test_every_externally_referenced_entity_uses_a_uuid_primary_key():
+    """threat-model.md §3.1: "UUID (not sequential integer) primary keys
+    on every externally-referenced entity" — defense in depth against ID
+    enumeration even behind auth (security.md). Checked against the real
+    mapped column type for every model a URL or form field could name,
+    not just the ones a reviewer happens to remember to check."""
+    from sqlalchemy.dialects.postgresql import UUID
+
+    from app.db import models
+
+    externally_referenced = [
+        models.Vendor, models.Case, models.EvidenceDocument, models.DocumentVersion,
+        models.AgentRun, models.Claim, models.EvidenceItem, models.Finding,
+        models.Conflict, models.ReInvestigation, models.HumanReview, models.AuditEvent,
+    ]
+    for model in externally_referenced:
+        id_column = model.__table__.c.id
+        assert isinstance(id_column.type, UUID), (
+            f"{model.__name__}.id is {id_column.type!r}, not a UUID — "
+            "sequential/serial IDs would make this entity enumerable."
+        )

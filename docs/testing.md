@@ -2,12 +2,14 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 163 tests passing through Phase 9
+the blueprint discussion. 183 tests passing through Phase 10
 (`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
 `tests/test_eval/` + `tests/test_web/`) — DB tests against a real local
 Postgres, agent tests against `FakeLLMClient` (zero real API calls,
 ADR-009), scoring tests against synthetic data, web route tests against
-a real FastAPI `TestClient` sharing the same transactional DB session.**
+a real FastAPI `TestClient` sharing the same transactional DB session.
+Every threat-model.md §3 row is checked against a real, named test —
+see its section 7 audit table.**
 
 - **Unit** — schema validation, state transitions, deterministic comparison
   logic, retry/backoff logic, idempotency guards, boundary-enforcement
@@ -176,3 +178,64 @@ a real FastAPI `TestClient` sharing the same transactional DB session.**
   `app.state_machine.transition_case()`'s WHERE-guarded update Phase 5
   already proved under real concurrent threads, not a new mechanism
   trusted without its own test.
+
+## Delivered in Phase 10
+
+Phase 10's job, per `threat-model.md`'s own acceptance criterion, was to
+exercise every §3 row with an actual test, not assume a mitigation holds
+because it was implemented. Auditing first (not assuming) found most
+rows already covered by tests earlier phases wrote for other reasons;
+seven were genuine gaps, closed here:
+
+- **Indirect injection via filename never reaches the instruction
+  channel**: `tests/test_agents/test_metadata_injection.py` builds a
+  document whose filename is itself a crafted injection payload
+  ("IGNORE ALL PREVIOUS INSTRUCTIONS...") and asserts it never appears
+  in the system prompt at all, and appears in the user message only
+  inside the document tag's `filename="..."` attribute — structured
+  data, in the exact position a benign filename would occupy.
+- **Parser errors never leak filesystem paths**:
+  `tests/test_app/test_parsing.py::test_parse_errors_never_mention_a_filesystem_path`
+  runs real malformed PDF/DOCX/text payloads through `parse_document`
+  and checks the raised message for path-shaped substrings — grounded in
+  a structural guarantee also checked directly
+  (`test_parse_document_takes_bytes_only_never_a_filesystem_path`):
+  the function has no path parameter to leak in the first place.
+- **SQL injection, run through real adversarial payloads, not just
+  asserted from "we use an ORM"**: `tests/test_db/test_sql_injection.py`
+  stores classic injection strings (`'; DROP TABLE cases; --`, etc.) as
+  a vendor name and a claim subject/rationale, through the real
+  `app.web.queries.list_cases` path the review UI actually calls, and
+  confirms the payload round-trips as inert data and every table it
+  names is still intact.
+- **Cross-case isolation at the persisted (Phase 9) query layer, not
+  just in-memory context construction**: `app/agents/context_builder.py`'s
+  own docstring named this exact gap in advance, before persistence
+  existed to have anything to leak.
+  `tests/test_web/test_cross_case_isolation.py` builds two full cases in
+  the same database and asserts `get_case_detail()` never returns one
+  case's claims, documents, or conflicts when queried for the other.
+- **No separate unauthenticated document route exists — checked against
+  the real route table, not the code as read**:
+  `test_no_separate_unauthenticated_document_route_exists` asserts the
+  registered FastAPI routes are exactly the four expected paths and none
+  of them look like a file-serving endpoint.
+- **UUID primary keys, checked on every externally-referenced model at
+  once**: `test_every_externally_referenced_entity_uses_a_uuid_primary_key`
+  iterates all twelve entities a URL or form field could name and
+  asserts each one's `id` column is a real UUID type, not trusting that
+  a future model addition remembers the convention.
+- **Observability's redaction policy is a tested function, not a
+  paragraph**: `tests/test_app/test_observability.py` asserts a long
+  document excerpt sent toward Langfuse is truncated to 200 chars plus a
+  hash of the full text, and — separately — that a broken/misconfigured
+  Langfuse client can never break the real LLM call it's tracing
+  (`test_traced_client_never_lets_a_broken_langfuse_sdk_break_the_real_call`),
+  all against a fake Langfuse client, never the real SDK (zero network,
+  zero cost, ADR-009's discipline extended to a new integration).
+
+Three rows are recorded as genuinely open, not silently dropped from the
+table: auth rate limiting and DB connection pooling are Phase 12
+deployment-time concerns neither built nor claimed to be; CI/CD secret
+exposure is Phase 11, not reached yet. See
+`threat-model.md`'s section 7 for the full row-by-row accounting.
