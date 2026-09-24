@@ -436,6 +436,113 @@ python -m eval.run_reconciliation --i-have-reviewed-the-cost-estimate \
     --investigator-results eval/results/investigators_20260924T082006Z.json
 ```
 
+## Phase 8 — real reconciliation run, executed 2026-09-24
+
+Approved and run:
+```bash
+python -m eval.run_reconciliation --i-have-reviewed-the-cost-estimate \
+    --investigator-results eval/results/investigators_20260924T082006Z.json
+```
+All 18 cases, 100% structured-output validity across all semantic-
+adjudication and re-investigation calls. Reused Phase 7's saved
+investigator output — no investigator API calls were re-made.
+
+| Metric | Value |
+|---|---|
+| Total new cost (this run only) | **$0.052607** |
+| Total input / output tokens | 29,712 / 4,579 |
+| Deterministic conflicts found | 2 (case-07, case-16) |
+| Semantic adjudication calls made | 17 (case-07 had nothing left over) |
+| Re-investigation calls made | 2 |
+| Mean latency (incremental, this run only) | 3.166s/case |
+
+**Estimate check:** landed under projection ($0.052607 vs. ~$0.062
+projected) — fewer semantic conflicts were actually flagged by the
+model than the token-count estimate assumed.
+
+**Cumulative spend: $0.317411 (through Phase 7) + $0.052607 (this run)
+= $0.370018 of $0.50. Remaining: $0.129982.**
+
+Full raw output: `eval/results/reconciliation_20260924T121800Z.json`.
+
+### Gate 6 result, checked against the criteria locked in ADR-006
+
+```
+category                     baseline acc   reconciled acc    delta  total
+ambiguous_wording                    0.0%             0.0%    +0.0%  3
+cross_domain_conflict               66.7%           100.0%   +33.3%  6
+direct_contradiction                66.7%           100.0%   +33.3%  4
+misleading_wording                   0.0%           100.0%  +100.0%  1
+missing_evidence                   100.0%            75.0%   -25.0%  4
+none_clean                          65.2%            53.8%   -11.4%  26
+outdated_evidence                    0.0%             0.0%    +0.0%  2
+subtle_contradiction                66.7%           100.0%   +33.3%  3
+version_conflict                    50.0%             0.0%   -50.0%  3
+[excl. cross_domain_conflict] baseline: acc=61.5% (24/39)
+[excl. cross_domain_conflict] reconciled: acc=53.5% (23/43)
+```
+
+| Criterion | Threshold | Measured | Result |
+|---|---|---|---|
+| `cross_domain_conflict` status accuracy | ≥ 66.7% | 100% | **PASS** |
+| Regression elsewhere (excl. cross_domain_conflict) | ≤ 5.0 pt | -8.0 pt | **FAIL** |
+| Cost/case vs. baseline (full pipeline: $0.170121 + $0.052607 = $0.222728 / 18) | ≤ 2.5× | 1.60× | PASS |
+| Latency/case vs. baseline (full pipeline: 10.332s + 3.166s) | ≤ 3.0× | 1.56× | PASS |
+
+**Gate 6 is judged NOT cleared** — three of four criteria pass, and the
+primary target (the exact structural gap Phase 7 identified) is a
+decisive, clean win, but the pre-registered "AND" over all four
+criteria means the one real miss (-8.0 pt against a 5.0 pt tolerance)
+is disqualifying as written. Full reasoning, including why this is not
+read as a refutation of the core hypothesis, is in
+[`ADR-006`](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
+executed 2026-09-24" section.
+
+### Root cause, investigated before writing any of this up
+
+Not accepted at face value — two specific claims were traced back to
+the actual model-generated rationale text behind them:
+
+- **`case-01-c6` (missing_evidence, correct as `unverified` from the
+  investigator) got force-flipped to `contradicted`.** Cause: semantic
+  adjudication flagged it as a "subtle_contradiction" against an
+  unrelated 30-day-deletion claim, reasoning that 24/7 monitoring
+  "may" be needed to verify the deletion happened — a dependency
+  invented by the model, not stated in any document. case-01 has
+  exactly one planted issue; this is a second, spurious flag.
+  `reconcile()` then unconditionally sets every claim in *any* flagged
+  conflict to `contradicted`, so a weak, speculative adjudication
+  produces a hard incorrect label with no softer outcome available.
+  This same over-trigger-then-overwrite mechanism is the most likely
+  driver of the broad `none_clean` regression (26 claims, the largest
+  category) — cases with one real planted issue are also picking up
+  extra, spurious semantic flags on their otherwise-clean claims.
+- **`case-07-c1` (version_conflict, correctly `contradicted` from the
+  investigator — one of only 2 deterministically-caught conflicts) got
+  incorrectly resolved to `supported`.** case-07 is deliberately
+  designed (`eval/ground_truth/case-07.json`'s
+  `expected_handling_notes`) to be unresolvable from the documents
+  alone — two DPA versions with different retention periods and no
+  changelog — specifically so a system doesn't silently treat the
+  later-dated document as authoritative. Re-investigation's actual
+  explanation text did exactly that: "The authoritative value is 60
+  days, as it applies under the current version (v2) with the more
+  recent effective date... The 30-day value was superseded." That's a
+  generic real-world heuristic, not a document-grounded resolution —
+  the re-investigation prompt doesn't constrain the model to resolve
+  only from what the documents themselves state.
+- **Checked for contrast, not just confirmation**: `case-16`'s
+  deterministic "conflict" (two different sub-processors — Ridgeline
+  Hosting vs. Junction Analytics — mismatched as "same topic, different
+  value" by jaccard similarity) is itself a false positive from the
+  deterministic pass, and re-investigation correctly recognized this
+  and left both claims `supported`. This shows the re-investigation
+  mechanism isn't broken in general — it resolves genuinely-not-a-
+  conflict cases correctly; it specifically fails when a conflict is
+  real but the documents provide no actual resolution, because nothing
+  stops it from reaching for outside-of-document reasoning instead of
+  saying so.
+
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per

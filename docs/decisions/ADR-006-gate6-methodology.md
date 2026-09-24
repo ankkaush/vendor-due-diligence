@@ -114,3 +114,81 @@ ADR's original consequence — and the fact that this bar was set from
 real Phase 6/7 data (even though later than originally planned) rather
 than invented after seeing Phase 8's results is what keeps that outcome
 honest.
+
+## Gate 6 decision, executed 2026-09-24: NOT cleared as pre-registered
+
+Real Phase 8 run: `eval/results/reconciliation_20260924T121800Z.json`,
+full analysis in `eval/COST_LOG.md`'s "Phase 8 — real reconciliation
+run, executed" section. Checked against the four criteria locked above,
+in order:
+
+| Criterion | Threshold | Measured | Result |
+|---|---|---|---|
+| `cross_domain_conflict` status accuracy | ≥ 66.7% | **100%** | **PASS** |
+| Regression elsewhere (excl. cross_domain_conflict) | ≤ 5.0 pt | **-8.0 pt** (61.5%→53.5%) | **FAIL** |
+| Cost per case vs. baseline | ≤ 2.5× | 1.60× ($0.012374 vs. $0.007731) | PASS |
+| Latency per case vs. baseline | ≤ 3.0× | 1.56× (13.50s vs. 8.67s) | PASS |
+
+Three of four criteria pass comfortably. The one that fails is not
+close (8.0 pt against a 5.0 pt tolerance) and is not a rounding
+artifact — it is explained by two distinct, identified mechanisms in
+the reconciliation layer, not by noise:
+
+1. **Semantic adjudication over-triggers.** It is instructed to catch
+   conflicts "even where the connection is not obvious from matching
+   wording" (by design, to compensate for the deterministic pass's
+   under-recall — see the Phase 8 projection section above) and, on the
+   real data, sometimes manufactures a "conflict" between claims that
+   are merely thematically adjacent, not actually contradictory.
+   Example: case-01 has exactly one planted issue, but semantic
+   adjudication flagged two conflicts — the second invents an
+   "operational interdependency" between a 24/7-monitoring claim and a
+   30-day deletion commitment that is stated nowhere in the documents.
+2. **`reconcile()`'s handling of a flagged semantic conflict is
+   unconditional.** Every claim in any flagged conflict is force-set to
+   `contradicted`, with no distinction for confidence or ambiguity — so
+   a single over-triggered flag directly corrupts a previously-correct
+   label rather than, e.g., degrading to "ambiguous" for human review.
+   This is what turns over-triggering into a measured accuracy
+   regression rather than a harmless false alarm.
+
+A third, narrower issue was found in bounded re-investigation
+specifically (not semantic adjudication): on case-07 — a version
+conflict the ground truth deliberately designed to be *unresolvable*
+from the documents alone (two DPA retention periods, no reconciling
+changelog) — re-investigation incorrectly resolved it to `supported`
+by reasoning that the later-dated document is authoritative, a
+generic real-world heuristic the documents themselves never state.
+The ground truth's own handling notes call this exact behavior out as
+the wrong answer. This is a single-case, one-directional finding, not
+a pattern across cases (case-16's re-investigation call, by contrast,
+correctly recognized a deterministic-pass false positive and left both
+claims `supported` — showing the mechanism works when the input
+conflict is itself real).
+
+**Decision: per the pre-registered "AND" structure of this ADR's
+locked criteria, Gate 6 is judged NOT cleared.** This is stated
+plainly rather than rounded up to a pass because the primary signal
+looks strong — the literal, pre-registered bar required all of the
+above, and one of them was missed by a real, explained margin, not a
+trivial one.
+
+**This is not read as a refutation of the core hypothesis.** The
+criterion Gate 6 was specifically designed to test — does
+reconciliation recover the `cross_domain_conflict` category that
+domain-isolated investigators structurally cannot resolve alone — is
+decisively answered yes (66.7%→100%, exactly the mechanism Phase 7
+predicted). The failure is localized to two identified, specific
+implementation defects in the reconciliation layer (semantic
+adjudication's over-triggering + its unconditional status overwrite;
+re-investigation's insufficient grounding-in-the-document constraint),
+not a structural property of independent investigation plus
+reconciliation as an architecture. Per this ADR's consequence clause,
+the honest next decision is between: (a) simplify to single-agent +
+deterministic reconciliation only, accepting the loss of the
+cross-domain recovery this run demonstrated, or (b) attempt a targeted
+fix to the two identified defects and re-run — which is a new,
+separate cost-review-and-approval decision under ADR-009, not an
+automatic continuation of this one. No further real API spend has been
+authorized for a fix-and-rerun; this section records the diagnosis,
+not a decision to proceed.

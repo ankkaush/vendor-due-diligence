@@ -1,13 +1,17 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phases 6 and 7 complete with real executed
-evaluation runs (baseline vs. raw multi-agent — `docs/evaluation.md`).
-Phase 8 (reconciliation: deterministic conflict detection + semantic
-adjudication + bounded re-investigation) built and unit-tested — 144
-tests. The real reconciliation run is costed (~$0.062 projected,
-`eval/COST_LOG.md`) and pending review — this is the run Gate 6's locked
-threshold (ADR-006) actually decides against. $0.317 of $0.50 spent so
-far. No HTTP layer yet (Phase 9+).**
+**Status: early build — Phases 6, 7, and 8 complete with real executed
+evaluation runs (baseline vs. raw multi-agent vs. reconciled — see
+`docs/evaluation.md`). Gate 6 has been checked against its pre-registered
+threshold (ADR-006) and is judged **not cleared**: the primary target
+(cross-domain conflict recovery, 66.7%→100%) is a decisive win, but a
+secondary regression tolerance is missed, traced to two specific,
+fixable defects in the reconciliation layer, not a flaw in the core
+independent-investigation hypothesis — see
+[ADR-006](docs/decisions/ADR-006-gate6-methodology.md)'s "Gate 6
+decision" section for the full, honest analysis. 144 tests. $0.370 of
+$0.50 spent; no further real API spend is currently authorized. No HTTP
+layer yet (Phase 9+).**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style

@@ -1,10 +1,14 @@
 # Evaluation
 
-**Status: Phase 6 and Phase 7 complete with real executed runs; Phase 8
-(reconciliation) built and unit-tested with the real run costed (~$0.062
-projected, `eval/COST_LOG.md`) and pending review before execution.**
-See "Phase 6 baseline results" and "Phase 7 investigator results" below.
-Gate 6's final numeric threshold was locked 2026-09-24 in
+**Status: Phase 6, 7, and 8 complete with real executed runs. Gate 6 has
+been checked against its pre-registered threshold and is judged NOT
+cleared — see "Phase 8 reconciliation results" below and
+[ADR-006](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
+executed 2026-09-24" section for the full criteria table and root-cause
+analysis. $0.370 of $0.50 spent; no further real API spend is
+authorized.** See "Phase 6 baseline results", "Phase 7 investigator
+results", and "Phase 8 reconciliation results" below. Gate 6's final
+numeric threshold was locked 2026-09-24 in
 [ADR-006](decisions/ADR-006-gate6-methodology.md) — later than originally
 planned (that ADR's own "Process gap, recorded honestly" section explains
 what happened) — ahead of Phase 8, the comparison it actually protects.
@@ -165,6 +169,78 @@ reconciliation must bring that category to ≥66.7% (baseline's number)
 without regressing the already-at-parity categories by more than 5
 points, within a 2.5× cost / 3× latency tolerance derived from this
 run's real numbers.
+
+## Phase 8 reconciliation results (executed, Gate 6 checked)
+
+`app/reconcile.py` (deterministic conflict detection + semantic
+adjudication) and `app/reinvestigate.py` (bounded, single-round,
+same-agent re-investigation) run against all 18 cases via
+`python -m eval.run_reconciliation`, reusing Phase 7's saved
+investigator output. Full breakdown and root-cause analysis in
+`eval/COST_LOG.md`'s "Phase 8 — real reconciliation run, executed"
+section; raw output in
+`eval/results/reconciliation_20260924T121800Z.json`.
+
+| Category | Baseline | Reconciled | Δ | n |
+|---|---|---|---|---|
+| `cross_domain_conflict` | 66.7% | **100%** | **+33.3%** | 6 |
+| `direct_contradiction` | 66.7% | 100% | +33.3% | 4 |
+| `subtle_contradiction` | 66.7% | 100% | +33.3% | 3 |
+| `misleading_wording` | 0.0% | 100% | +100% | 1 |
+| `missing_evidence` | 100% | 75.0% | −25.0% | 4 |
+| `none_clean` | 65.2% | 53.8% | −11.4% | 26 |
+| `version_conflict` | 50.0% | 0.0% | −50.0% | 3 |
+| `ambiguous_wording` / `outdated_evidence` | 0.0% | 0.0% / 0.0% | 0 | 3, 2 |
+
+**Checked against ADR-006's four locked criteria:**
+
+| Criterion | Threshold | Measured | Result |
+|---|---|---|---|
+| `cross_domain_conflict` accuracy | ≥ 66.7% | 100% | **PASS** |
+| Regression elsewhere (excl. cross_domain_conflict, 61.5%→53.5%) | ≤ 5.0 pt | −8.0 pt | **FAIL** |
+| Cost per case vs. baseline | ≤ 2.5× | 1.60× | PASS |
+| Latency per case vs. baseline | ≤ 3.0× | 1.56× | PASS |
+
+**Gate 6 is judged NOT cleared.** The primary, structural target this
+gate was designed to test — does reconciliation recover
+`cross_domain_conflict`, the category domain-isolated investigators
+cannot resolve alone — is a decisive, clean win (66.7%→100%, exactly
+the mechanism Phase 7 predicted). But the pre-registered criteria are
+an AND, not a weighted score, and the secondary regression tolerance is
+missed by a real margin (8.0 pt against 5.0 pt), so the gate as
+literally written is not cleared.
+
+**Root cause, traced to actual model output, not left as an aggregate
+number:** two specific reconciliation-layer defects, not a property of
+the independent-investigation architecture itself.
+
+1. Semantic adjudication over-triggers — it sometimes flags a
+   "conflict" between claims that are merely thematically adjacent
+   (e.g., inventing an unstated dependency between a 24/7-monitoring
+   claim and an unrelated 30-day-deletion commitment in case-01, which
+   has only one actual planted issue).
+2. `reconcile()` responds to any flagged conflict by unconditionally
+   forcing every involved claim to `contradicted`, with no softer
+   outcome for a low-confidence flag — turning each over-trigger
+   directly into a wrong label. This combination is the most likely
+   driver of the broad `none_clean` regression (26 claims, the largest
+   category).
+
+A third, narrower defect was found in bounded re-investigation:
+case-07 is deliberately designed to be unresolvable from the documents
+alone (two DPA versions, no reconciling changelog), but
+re-investigation resolved it anyway using a generic "later document
+wins" heuristic never stated in the documents — exactly the behavior
+the case's ground truth notes call out as wrong. This is contrasted
+with case-16, where re-investigation correctly recognized a
+deterministic-pass false positive and left both claims unchanged,
+showing the mechanism is not broken in general.
+
+Full reasoning, including why this is read as two fixable
+implementation defects rather than a refutation of the core hypothesis,
+and what decision follows from here, is in
+[ADR-006](decisions/ADR-006-gate6-methodology.md)'s "Gate 6 decision,
+executed 2026-09-24" section.
 
 ## Gate 6 methodology (pre-registration)
 

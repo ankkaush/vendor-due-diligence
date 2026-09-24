@@ -45,12 +45,18 @@ def _predicted_claims_from_investigator_result(result: dict) -> list[dict] | Non
     return claims
 
 
+def _predicted_claims_from_reconciliation_result(result: dict) -> list[dict] | None:
+    return result.get("reconciled_claims", [])
+
+
 def _cases_for(run: dict) -> list[tuple[dict, list[dict] | None]]:
-    is_investigator = "per_agent" in run["results"][0] if run["results"] else False
-    extractor = (
-        _predicted_claims_from_investigator_result
-        if is_investigator else _predicted_claims_from_baseline_result
-    )
+    first = run["results"][0] if run["results"] else {}
+    if "reconciled_claims" in first:
+        extractor = _predicted_claims_from_reconciliation_result
+    elif "per_agent" in first:
+        extractor = _predicted_claims_from_investigator_result
+    else:
+        extractor = _predicted_claims_from_baseline_result
     return [
         (_load_ground_truth(r["case_id"]), extractor(r))
         for r in run["results"]
@@ -94,11 +100,13 @@ def compare(path_a: Path, path_b: Path, label_a: str, label_b: str) -> None:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) not in (3, 5):
         print(
-            "Usage: python -m eval.compare_results <baseline_results.json> "
-            "<investigators_results.json>",
+            "Usage: python -m eval.compare_results <a_results.json> <b_results.json> "
+            "[label_a label_b]",
             file=sys.stderr,
         )
         sys.exit(1)
-    compare(Path(sys.argv[1]), Path(sys.argv[2]), "baseline", "investigators")
+    label_a = sys.argv[3] if len(sys.argv) == 5 else "a"
+    label_b = sys.argv[4] if len(sys.argv) == 5 else "b"
+    compare(Path(sys.argv[1]), Path(sys.argv[2]), label_a, label_b)
