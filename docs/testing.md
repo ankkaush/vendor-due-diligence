@@ -2,7 +2,9 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion.**
+the blueprint discussion. 81 tests passing through Phase 5
+(`tests/test_db/` + `tests/test_app/`), all against a real local Postgres
+(`docker compose up -d`), none mocked at the DB layer.**
 
 - **Unit** — schema validation, state transitions, deterministic comparison
   logic, retry/backoff logic, idempotency guards, boundary-enforcement
@@ -23,6 +25,30 @@ the blueprint discussion.**
 - **Regression** — every real failure discovered during building becomes a
   permanent test case, growing the eval/test suite honestly over time
   rather than freezing it at Phase 3.
+
+## Delivered in Phase 5
+
+- **Idempotency/concurrency, with real threads, not sequential calls**:
+  `tests/test_app/test_state_machine.py::test_concurrent_duplicate_transition_attempts_exactly_one_wins`
+  — two OS threads, two separate DB connections, a `threading.Barrier` to
+  force genuine overlap, racing the same guarded transition. Building this
+  test caught two real bugs before they could matter: the standard
+  savepoint-based test-isolation fixture is invisible across real
+  connections (needed its own committing setup), and the append-only
+  trigger correctly refused the test's own cleanup DELETE — proving
+  `case_state_transitions` is genuinely undeletable, not just documented
+  as such.
+- **Malicious file handling**: `tests/test_app/test_parsing.py` — an XXE
+  payload embedded in a crafted DOCX is rejected by defusedxml on the
+  first real attempt; zip-bomb protection (declared-size cap checked
+  before decompression) and a parse-timeout are both exercised directly,
+  not merely implemented and assumed to work.
+- **The Phase 3 cases through real intake/classification**:
+  `tests/test_app/test_eval_case_routing.py` runs all 18 real eval cases'
+  real documents through actual parsing + classification and asserts
+  every one routes to its ground truth's expected domain — the Phase 5
+  acceptance step named in `architecture.md`, run against real content
+  rather than the classifier tested in isolation.
 
 Key boundary test to be written in Phase 7:
 `test_investigator_context_has_no_cross_agent_data_even_when_available` —

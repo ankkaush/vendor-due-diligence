@@ -8,12 +8,14 @@ license = "MIT"
 authors = [{ name = "Ankit Kaushik" }]
 
 # Runtime dependencies are added incrementally, phase by phase, as they are
-# actually needed — FastAPI/Anthropic SDK etc. arrive starting Phase 5/6.
+# actually needed — FastAPI/Anthropic SDK etc. arrive starting Phase 6+.
 dependencies = [
     "sqlalchemy>=2.0",
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
     "pydantic-settings>=2.4",
+    "pypdf>=4.3",       # PDF text extraction (decision #10: PDF/DOCX/TXT/MD only)
+    "defusedxml>=0.7",  # XXE-safe XML parsing for DOCX (ADR/security.md Phase 5 requirement)
 ]
 
 [project.optional-dependencies]

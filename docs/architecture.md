@@ -1,6 +1,9 @@
 # Architecture
 
-**Status: approved design (Gate 1 closed). Not yet implemented — see phase status in README.**
+**Status: approved design (Gate 1 closed). Implemented through Phase 5
+(data model + deterministic foundation: intake, validation, parsing,
+classification, state machine). Agents (Phase 6+) don't exist yet — see
+phase status in README.**
 
 ## Problem
 
@@ -75,7 +78,7 @@ DOCUMENT CLASSIFICATION (deterministic doc_type → domain routing table)
 | Sub-task | Deterministic | Single agent | Multi-agent |
 |---|---|---|---|
 | File validation, MIME/size checks | Fully handles it | — | — |
-| Document classification/routing | Mostly (rules); ambiguous docs fall back to a model call | Fallback | — |
+| Document classification/routing | Fully rule-based for 9/10 doc_types; `other` requires an explicit domain (no model fallback exists yet — Phase 5 has no agents) | Future fallback, if ever needed | — |
 | Claim extraction | — | Can do it | Done independently per domain (ADR-004) |
 | Domain-specific claim verification | — | Does most of it in one pass | Tests whether domain isolation catches what one pass misses |
 | Schema-level contradiction detection (e.g. "30 days" vs "90 days") | Fully handles it, no LLM call | Unnecessary | Unnecessary |
@@ -116,6 +119,37 @@ INTAKE → VALIDATING → VALIDATION_FAILED (terminal, human resubmits)
 Every transition is an append-only row plus a transaction-guarded status
 update (`UPDATE ... WHERE status = <expected>`), so concurrent workers can't
 double-advance or double-finalize a case. See [`data-model.md`](data-model.md).
+
+**Implemented:** [`app/state_machine.py`](../app/state_machine.py) — the
+graph above as data (`TRANSITIONS`), plus the guarded `transition_case()`.
+Proven under real concurrency, not just asserted: two threads on separate
+DB connections racing the same transition, exactly one wins
+(`tests/test_app/test_state_machine.py`). `FAILED`'s resume path is
+deliberately not implemented yet — there's nothing to resume into until
+Phase 6/7's agents exist; scoped out explicitly, not forgotten.
+
+## Document classification (routing table)
+
+The routing table Phase 5 was scoped to decide: a deterministic
+`doc_type → domain` default ([`app/routing.py`](../app/routing.py)),
+reusing the same domain vocabulary as `eval/schema/ground_truth.schema.json`.
+Nine of ten `doc_type`s have an unambiguous default; `other` has none —
+Phase 5 has no LLM to infer it, so it requires an explicit domain at
+ingestion time rather than guessing.
+
+A document's domain can also be explicitly overridden away from its
+default, because real documents don't respect clean categories. This
+isn't hypothetical: building this table surfaced a real inconsistency in
+`eval/ground_truth/case-12.json` — a `security_questionnaire` containing a
+GDPR question, with the questionnaire tagged `domain: "security"` but the
+GDPR claim tagged `domain: "privacy_ai_governance"`. Routed "security
+only" by default, the privacy investigator would never see that document
+and the claim would be structurally unreachable — a ground-truth bug the
+routing table made visible, not a hypothetical edge case. Fixed by
+tagging that specific document `domain: "both"`
+(`tests/test_app/test_eval_case_routing.py` runs all 18 real eval cases'
+real documents through actual intake + classification and asserts every
+one routes to its ground truth's expected domain).
 
 ## Related ADRs
 

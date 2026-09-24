@@ -1,7 +1,10 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phase 4 (data/evidence model) complete. Schema and
-migrations are real and tested; no agents, orchestrator, or API yet.**
+**Status: early build — Phase 5 (deterministic foundation) complete.
+Real intake, validation, document parsing (PDF/DOCX/TXT/MD), deterministic
+classification, and a concurrency-tested state machine — 81 tests passing
+against a real database. No agents or LLM calls in the application yet
+(those start Phase 6); no HTTP layer yet either.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -69,7 +72,7 @@ cp .env.example .env   # then fill in real values — never commit .env
 
 docker compose up -d          # isolated local Postgres, port 5437
 alembic upgrade head          # apply the schema
-pytest tests/                 # 13 tests: constraints + full evidence chain
+pytest tests/                 # 81 tests: schema, intake, parsing, state machine
 ```
 
 `pre-commit install` wires up secret scanning (gitleaks) and linting to run

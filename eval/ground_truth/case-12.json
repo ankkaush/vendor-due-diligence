@@ -5,7 +5,7 @@
   "difficulty": "moderate",
   "contains_injection": false,
   "document_manifest": [
-    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "security", "version": 1 },
+    { "document_id": "doc-questionnaire", "filename": "security-questionnaire.md", "doc_type": "security_questionnaire", "domain": "both", "version": 1 },
     { "document_id": "doc-soc", "filename": "soc-report-summary.md", "doc_type": "soc_report", "domain": "security", "version": 1 }
   ],
   "claims": [
@@ -26,7 +26,7 @@
       "expected_verification_status": "unverified",
       "issue_type": "missing_evidence",
       "is_planted_issue": true,
-      "expected_handling_notes": "This claim is domain-tagged privacy_ai_governance despite being sourced from the security questionnaire, and no privacy-domain document exists anywhere in the package to evidence it — the questionnaire itself notes the DPA and Privacy Policy were withheld. This should be reported as unverified due to package incompleteness, distinctly from a claim that has contradicting evidence (compare case-02) or that simply lacks corroboration despite the right document type being present (compare case-04). The synthesized report should be able to say 'the DPA and Privacy Policy were not provided in this submission' as a package-level gap, not just a per-claim footnote."
+      "expected_handling_notes": "This claim is domain-tagged privacy_ai_governance even though it is sourced from a security_questionnaire doc_type — that document is deliberately classified domain=\"both\" (not the security_questionnaire default) because it blends security and privacy/compliance questions, so it is routed to both investigators (Phase 5 routing.py). The privacy investigator is therefore the one who actually encounters and extracts this claim; a routing table that sent this document to security only would make the claim unreachable by design, which is exactly the bug this case's document-level domain override exists to avoid. No privacy-domain document exists anywhere in the package to evidence it either way — the questionnaire itself notes the DPA and Privacy Policy were withheld. This should be reported as unverified due to package incompleteness, distinctly from a claim that has contradicting evidence (compare case-02) or that simply lacks corroboration despite the right document type being present (compare case-04). The synthesized report should be able to say 'the DPA and Privacy Policy were not provided in this submission' as a package-level gap, not just a per-claim footnote."
     },
     {
       "claim_id": "case-12-c2",
