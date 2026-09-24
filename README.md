@@ -1,11 +1,11 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phase 6 (strong single-agent baseline) built and
-unit-tested. 104 tests passing (zero real API calls — agent tests run
-against a fake LLM client, ADR-009). The real evaluation run against all
-18 cases is costed (~$0.11–0.16 projected, `eval/COST_LOG.md`) and
-pending review before execution. No multi-agent investigators yet
-(Phase 7); no HTTP layer yet either.**
+**Status: early build — Phase 6 (strong single-agent baseline) complete,
+including the real evaluation run. 100% structured-output validity, 100%
+injection detection, 59.8% status accuracy on matched claims — this is
+now the measured bar Phase 7's multi-agent architecture has to beat at
+Gate 6 (`docs/evaluation.md`). $0.147 of the $0.50 API budget spent.
+No multi-agent investigators yet (Phase 7); no HTTP layer yet either.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
