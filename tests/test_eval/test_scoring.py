@@ -5,7 +5,7 @@ fixtures, so the matching/aggregation logic can be verified in isolation
 before it's ever pointed at real model output.
 """
 
-from eval.scoring import CaseMetrics, aggregate, match_claims, score_case
+from eval.scoring import CaseMetrics, aggregate, breakdown_by_issue_type, match_claims, score_case
 
 GT_CASE = {
     "case_id": "synthetic-01",
@@ -213,3 +213,70 @@ def test_aggregate_claim_recall_is_global_not_averaged_per_case():
     )
     agg = aggregate([case_a, case_b])
     assert agg.overall_claim_recall == 0.5
+
+
+# --- breakdown_by_issue_type -----------------------------------------------
+
+
+def test_breakdown_separates_categories_and_computes_accuracy_per_category():
+    # GT_CASE: c1 has issue_type None ("none_clean"), c2 has "missing_evidence".
+    predicted = [
+        {
+            "source_document_id": "doc-a", "subject": "data retention period",
+            "source_excerpt": "shall delete all customer personal data within 30 days",
+            "verification_status": "supported", "evidence": [],
+        },
+        {
+            "source_document_id": "doc-b", "subject": "penetration testing",
+            "source_excerpt": "engages a third-party firm to perform an annual penetration test",
+            "verification_status": "unverified", "evidence": [],
+        },
+    ]
+    result = breakdown_by_issue_type([(GT_CASE, predicted)])
+    assert result["none_clean"].total == 1
+    assert result["none_clean"].matched == 1
+    assert result["none_clean"].correct == 1
+    assert result["none_clean"].status_accuracy == 1.0
+
+    assert result["missing_evidence"].total == 1
+    assert result["missing_evidence"].status_accuracy == 1.0
+
+
+def test_breakdown_pools_across_multiple_cases_in_the_same_category():
+    case_2 = {
+        **GT_CASE,
+        "case_id": "synthetic-02",
+        "claims": [{**GT_CASE["claims"][1], "claim_id": "c2b"}],  # another missing_evidence claim
+    }
+    predicted_1 = [{
+        "source_document_id": "doc-b", "subject": "penetration testing",
+        "source_excerpt": "engages a third-party firm to perform an annual penetration test",
+        "verification_status": "unverified", "evidence": [],
+    }]
+    predicted_2 = [{
+        "source_document_id": "doc-b", "subject": "penetration testing",
+        "source_excerpt": "engages a third-party firm to perform an annual penetration test",
+        "verification_status": "supported",  # wrong, on purpose
+        "evidence": [],
+    }]
+    result = breakdown_by_issue_type([
+        ({**GT_CASE, "claims": [GT_CASE["claims"][1]]}, predicted_1),
+        (case_2, predicted_2),
+    ])
+    assert result["missing_evidence"].total == 2
+    assert result["missing_evidence"].matched == 2
+    assert result["missing_evidence"].correct == 1  # only the first was right
+    assert result["missing_evidence"].status_accuracy == 0.5
+
+
+def test_breakdown_handles_a_failed_case_with_none_predicted_claims():
+    result = breakdown_by_issue_type([(GT_CASE, None)])
+    assert result["none_clean"].total == 1
+    assert result["none_clean"].matched == 0
+    assert result["none_clean"].status_accuracy is None
+
+
+def test_breakdown_unmatched_category_has_no_accuracy():
+    stats = breakdown_by_issue_type([(GT_CASE, [])])["missing_evidence"]
+    assert stats.matched == 0
+    assert stats.status_accuracy is None

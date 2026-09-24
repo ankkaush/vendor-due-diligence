@@ -43,7 +43,7 @@ PRICE_PER_MTOK_OUTPUT: float | None = 5.00
 
 BUDGET_TOTAL_USD = 0.50
 # Sum of every real-call row already in eval/COST_LOG.md before this run.
-PRIOR_SPEND_USD = 0.147290  # calibration + Phase 6 baseline run
+PRIOR_SPEND_USD = 0.317411  # calibration + Phase 6 baseline + this Phase 7 run
 
 
 def load_api_key() -> str:

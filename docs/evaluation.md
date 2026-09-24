@@ -1,11 +1,11 @@
 # Evaluation
 
-**Status: Phase 6 complete (real baseline run executed 2026-09-24 —
-"Phase 6 baseline results" below, the number multi-agent has to beat at
-Gate 6). Phase 7 built and unit-tested — investigators + context builder,
-30 tests against `FakeLLMClient` — with the real 18-case run costed
-(~$0.134 projected, `eval/COST_LOG.md`) and pending review before
-execution.**
+**Status: Phase 6 and Phase 7 both complete with real executed runs.**
+See "Phase 6 baseline results" and "Phase 7 investigator results" below.
+Gate 6's final numeric threshold was locked 2026-09-24 in
+[ADR-006](decisions/ADR-006-gate6-methodology.md) — later than originally
+planned (that ADR's own "Process gap, recorded honestly" section explains
+what happened) — ahead of Phase 8, the comparison it actually protects.
 
 Evaluation is designed before the pipeline, not after. See
 [ADR-006](decisions/ADR-006-gate6-methodology.md) for the full Gate 6
@@ -96,20 +96,103 @@ clear it, but "does independent verification catch these specific
 failure patterns" is now a real, falsifiable question with a measured
 baseline to test against, not a hypothetical one.
 
+## Phase 7 investigator results (executed, raw comparison — no reconciliation yet)
+
+Both investigators run against all real 18 cases via
+`python -m eval.run_investigators`, claims pooled with no reconciliation
+(that's Phase 8). Full breakdown in `eval/COST_LOG.md`; raw output in
+`eval/results/investigators_20260924T082006Z.json`.
+
+| Metric | Baseline (Phase 6) | Investigators (Phase 7, raw) |
+|---|---|---|
+| Structured output validity | 100% | 100% |
+| Overall claim recall | 86.5% | 94.2% |
+| Status accuracy on matched claims | 59.8% | 52.3% |
+| Contradiction recall | 62.5% | 75.0% |
+| Injection detection rate | 100% | 100% |
+| Cost | $0.139160 | $0.170121 |
+
+**Read the 52.3% vs. 59.8% delta by category, not as one number — it
+tells a completely different story than the aggregate suggests.**
+`eval.scoring.breakdown_by_issue_type` (new this phase, unit-tested,
+also usable as `python -m eval.compare_results`) breaks status accuracy
+down by the ground truth's planted `issue_type`:
+
+| Category | Baseline | Investigators | Δ | n |
+|---|---|---|---|---|
+| `cross_domain_conflict` | 66.7% | **0.0%** | −66.7% | 6 |
+| `subtle_contradiction` | 66.7% | **100%** | +33.3% | 3 |
+| `direct_contradiction` | 66.7% | **100%** | +33.3% | 4 |
+| `ambiguous_wording` | 0.0% | 33.3% | +33.3% | 3 |
+| `missing_evidence` | 100% | 100% | 0 | 4 |
+| `version_conflict` | 50.0% | 50.0% | 0 | 3 |
+| `misleading_wording` / `outdated_evidence` | 0.0% | 0.0% | 0 | 1, 2 |
+| everything else (clean/untagged claims) | 65.2% | 61.5% | −3.7% | 26 |
+
+**One category — `cross_domain_conflict` — accounts for almost the
+entire aggregate gap, and it does so for a structural reason, not a
+quality one.** Those 6 claims (case-08/14/18) are, by design, only
+resolvable by comparing evidence from *both* domains at once — exactly
+what Phase 8's reconciliation exists to do and Phase 7 explicitly
+doesn't attempt. Checked directly against case-08's raw output: the
+security investigator marked the EU-only residency claim `unverified` —
+defensible from what it alone can see — and the privacy investigator
+marked the India-based sub-processor disclosure `supported` — also
+defensible in isolation, since nothing in its own context contradicts
+it. Neither investigator is wrong given its restricted evidence; ground
+truth expects `contradicted`, which requires both.
+
+**Excluding that one structurally-expected category, the architectures
+are close to parity, with investigators marginally ahead** (pooling
+every individual claim globally, not averaging per-case): baseline
+61.5% (24/39), investigators 62.8% (27/43) — and investigators show a
+real edge specifically on `subtle_contradiction` and
+`direct_contradiction` (100% vs. 66.7% each), though both are small
+samples (n=3, n=4) and should be read as a promising signal, not a
+settled result.
+
+**What this means for Gate 6, concretely:** raw multi-agent output,
+even before any reconciliation exists, is not "worse" in any way that
+matters — it's already roughly at parity outside the one category it
+was never supposed to solve alone. The real, falsifiable question for
+Phase 8 is narrow and precise: does reconciliation recover
+`cross_domain_conflict` specifically? ADR-006 (updated 2026-09-24, after
+this run — see its "Process gap, recorded honestly" section for why that
+timing isn't quite what was originally planned) locks the exact bar:
+reconciliation must bring that category to ≥66.7% (baseline's number)
+without regressing the already-at-parity categories by more than 5
+points, within a 2.5× cost / 3× latency tolerance derived from this
+run's real numbers.
+
 ## Gate 6 methodology (pre-registration)
 
-1. Phase 6 completes → baseline quality, cost, latency, and retry/failure
-   rate are measured and recorded here.
-2. **Before** Phase 7/8 results are computed or reviewed,
-   [ADR-006](decisions/ADR-006-gate6-methodology.md) is dated and locks the
-   quality-improvement bar (on the metrics above) and the cost/latency
-   tolerance multiplier — derived from the baseline's actual numbers, not
-   invented in advance.
-3. Only then does the multi-agent evaluation run and Gate 6 get decided.
-4. If multi-agent doesn't clear the pre-registered bar, the architecture is
-   simplified and that result is documented honestly — a measured "it
-   wasn't worth it, here's the data" is the correct outcome if that's what
-   the evidence shows.
+**As designed:** lock the quantitative bar from Phase 6's real numbers
+before the treatment (multi-agent) data exists, so the threshold can't be
+shaped by already knowing the result.
+
+**As actually executed:** step 2 below was supposed to happen before
+Phase 7's results were reviewed — it didn't (ADR-006's "Process gap,
+recorded honestly" section). Phase 7's raw investigator run was reviewed
+without a pre-set numeric bar to check it against. What limits the
+damage: Phase 7 was always a diagnostic step, not the final decision (no
+pass/fail verdict was claimed on it — see "Phase 7 investigator results"
+above, which reports a category breakdown, not a gate outcome), and the
+real decision this discipline protects — Phase 8's reconciled-vs-baseline
+comparison — still had its threshold locked properly, from real Phase 6
+*and* Phase 7 data, before Phase 8 exists.
+
+1. Phase 6 completes → baseline quality, cost, latency measured and
+   recorded here. ✅ done.
+2. ~~Before Phase 7 results are reviewed~~ → in practice, before **Phase
+   8** results exist: [ADR-006](decisions/ADR-006-gate6-methodology.md)
+   locks the quality-improvement bar and the cost/latency tolerance,
+   derived from Phase 6 + Phase 7's actual measured numbers. ✅ done
+   2026-09-24.
+3. Phase 8 (reconciliation) runs against that locked bar.
+4. If multi-agent doesn't clear it, the architecture is simplified and
+   that result is documented honestly — a measured "it wasn't worth it,
+   here's the data" is the correct outcome if that's what the evidence
+   shows.
 
 **Prompt-injection resistance is excluded from this comparison.** It is
 tested as a mandatory, independent security pass/fail for both

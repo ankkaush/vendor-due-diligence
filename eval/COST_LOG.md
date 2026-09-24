@@ -266,14 +266,124 @@ After the $0.147290 already spent (calibration + Phase 6 baseline):
 of the $0.50 budget** for Phase 8's reconciliation/re-investigation calls,
 once those exist.
 
-**Not yet run.** Per ADR-009, this needs explicit review and approval
-before executing:
+**Status: executed and reviewed** — see "Phase 7 — real investigator run"
+below for actual results.
 
-```bash
-python -m eval.run_investigators --i-have-reviewed-the-cost-estimate
+## Phase 7 — real investigator run, executed 2026-09-24
+
+Approved and run: `python -m eval.run_investigators --i-have-reviewed-the-cost-estimate`.
+All 18 cases, both investigators each, zero structured-output failures.
+27 of 36 possible calls actually made (9 skipped — empty domain, no
+API cost).
+
+| Case | Input tok | Output tok | Cost |
+|---|---|---|---|
+| case-01 | 4,619 | 2,500 | $0.017119 |
+| case-02 | 4,372 | 1,480 | $0.011772 |
+| case-03 | 2,316 | 1,125 | $0.007941 |
+| case-04 | 4,092 | 1,137 | $0.009777 |
+| case-05 | 2,121 | 784 | $0.006041 |
+| case-06 | 2,226 | 883 | $0.006641 |
+| case-07 | 2,123 | 771 | $0.005978 |
+| case-08 | 4,110 | 1,105 | $0.009635 |
+| case-09 | 2,173 | 867 | $0.006508 |
+| case-10 | 2,359 | 1,134 | $0.008029 |
+| case-11 | 2,114 | 672 | $0.005474 |
+| case-12 | 4,367 | 964 | $0.009187 |
+| case-13 | 2,141 | 850 | $0.006391 |
+| case-14 | 4,169 | 1,580 | $0.012069 |
+| case-15 | 2,253 | 1,495 | $0.009728 |
+| case-16 | 4,096 | 1,271 | $0.010451 |
+| case-17 | 4,318 | 1,775 | $0.013193 |
+| case-18 | 4,392 | 1,959 | $0.014187 |
+| **Total** | **58,361** | **22,352** | **$0.170121** |
+
+**Estimate check:** input landed slightly under the projection (58,361
+actual vs. 59,557 projected). Output ran higher than even the
+conservative scenario (22,352 vs. ~17,800) — richer per-claim rationale
+again, same pattern as Phase 6. Total cost landed almost exactly on the
+conservative bound ($0.170 vs. $0.178 projected).
+
+**Cumulative spend: $0.147290 (through Phase 6) + $0.170121 (this run) =
+$0.317411 of $0.50. Remaining: $0.182589.**
+
+### Aggregate results (raw pooled investigator claims, no reconciliation)
+
+| Metric | Baseline (Phase 6) | Investigators (Phase 7) |
+|---|---|---|
+| Structured output validity | 100% | 100% |
+| Overall claim recall | 86.5% | 94.2% |
+| Status accuracy on matched claims (macro, per-case mean) | 59.8% | 52.3% |
+| Contradiction recall | 62.5% | 75.0% |
+| Missing-evidence recall | 100% | 100% |
+| Injection detection rate | 100% | 100% |
+| Mean evidence grounding rate | 100% | 100% |
+| Cost | $0.139160 | $0.170121 |
+
+Full raw output: `eval/results/investigators_20260924T082006Z.json`.
+
+### The aggregate status-accuracy drop, investigated by category — not just reported
+
+Read at face value, 52.3% vs. 59.8% looks like multi-agent is worse. It
+isn't that simple, and the category breakdown
+(`eval/compare_results.py`, `eval.scoring.breakdown_by_issue_type` — new
+this run, unit-tested in `tests/test_eval/test_scoring.py`) shows why:
+
 ```
+category                     baseline acc investigators acc    delta  total
+ambiguous_wording                    0.0%            33.3%   +33.3%  3
+cross_domain_conflict               66.7%             0.0%   -66.7%  6
+direct_contradiction                66.7%           100.0%   +33.3%  4
+misleading_wording                   0.0%             0.0%    +0.0%  1
+missing_evidence                   100.0%           100.0%    +0.0%  4
+none_clean                          65.2%            61.5%    -3.7%  26
+outdated_evidence                    0.0%             0.0%    +0.0%  2
+subtle_contradiction                66.7%           100.0%   +33.3%  3
+version_conflict                    50.0%            50.0%    +0.0%  3
+```
+
+**One category — `cross_domain_conflict` — explains almost the entire
+aggregate gap, and it does so for a structural reason, not a quality
+one.** These 6 claims (case-08, case-14, case-18) are, by the design of
+those cases, only resolvable by comparing evidence from *both* domains —
+that is exactly what reconciliation (Phase 8, not built yet) exists to
+do. A domain-scoped investigator, working alone as Phase 7 requires
+(ADR-007), structurally cannot produce "contradicted" for a claim whose
+contradicting evidence lives in a document it never receives. Checked
+directly (`case-08`): the security investigator marked the EU-only
+residency claim `unverified` — a defensible answer from what it can
+see — and the privacy investigator marked the India-based sub-processor
+disclosure `supported` — also defensible in isolation, since nothing in
+its own context contradicts it. Neither is wrong given what it had;
+ground truth expects `contradicted`, which requires both.
+
+**Excluding that one structurally-expected category, the two
+architectures are close to parity, with investigators very slightly
+ahead** (global/micro-averaged, pooling every individual claim rather
+than averaging per-case): baseline 61.5% (24/39 correct), investigators
+62.8% (27/43 correct). Within that, investigators show a real,
+consistent edge specifically on **subtle_contradiction (100% vs. 66.7%)**
+and **direct_contradiction (100% vs. 66.7%)** — though both categories
+have small sample sizes (n=3, n=4) and should be read as a promising
+signal, not a settled result. `missing_evidence` is tied at a perfect
+100% for both. `misleading_wording` and `outdated_evidence` are tied at
+0% for both (n=1, n=2 — a single case each; not enough data to
+distinguish "both architectures share the same weakness" from "these
+categories are just hard to test with one case").
+
+**What this sets up for Phase 8, precisely and falsifiably:** does
+reconciliation recover the `cross_domain_conflict` category specifically?
+If comparing the two investigators' pooled output (case-08/14/18) lets a
+deterministic reconciliation step correctly flag those 6 claims as
+conflicting — something neither investigator could do alone — that is
+concrete evidence of exactly the value multi-agent decomposition is
+supposed to provide, measurable against a number that already exists
+(baseline's 66.7% on this same category). If it doesn't recover them,
+that's meaningful too, per Gate 6 / ADR-006's commitment to accept
+either outcome honestly.
 
 ## Discipline going forward
 
 No further real API calls without explicit review and approval, per
-ADR-009.
+ADR-009. Next expected real spend: Phase 8's reconciliation/
+re-investigation calls, once built — same review process.

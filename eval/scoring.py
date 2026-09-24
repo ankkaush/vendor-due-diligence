@@ -254,3 +254,58 @@ def aggregate(case_metrics: list[CaseMetrics]) -> AggregateMetrics:
         mean_latency_s=sum(c.latency_s for c in case_metrics) / n if n else 0.0,
         total_retries=sum(c.retry_count for c in case_metrics),
     )
+
+
+@dataclass
+class CategoryStats:
+    issue_type: str  # ground truth's issue_type, or "none_clean" for untagged claims
+    total: int
+    matched: int
+    correct: int
+
+    @property
+    def status_accuracy(self) -> float | None:
+        return self.correct / self.matched if self.matched else None
+
+
+def breakdown_by_issue_type(
+    cases: list[tuple[dict, list[dict] | None]],
+) -> dict[str, CategoryStats]:
+    """Per-failure-mode-category accuracy across a whole evaluation run —
+    the breakdown evaluation.md and eval/CASES.md both promise ("results
+    can be broken down by failure-mode category, not just aggregated").
+    `cases` is a list of (case_ground_truth, predicted_claims) pairs;
+    predicted_claims may be None for a case that failed structured-output
+    validation (its ground-truth claims count toward `total` but never
+    `matched`).
+
+    This is a *global* (micro-averaged) accuracy per category — every
+    individual claim across every case counts equally — which is a
+    different aggregation than AggregateMetrics.mean_status_accuracy_on_matched
+    (a *macro* average: each case's accuracy counted once, then averaged
+    across cases regardless of how many claims it had). Both are valid;
+    they can legitimately disagree when case sizes vary, which they do
+    here (2-6 claims per case) — report which one a number is before
+    comparing it to another, don't treat them as interchangeable.
+    """
+    stats: dict[str, CategoryStats] = {}
+
+    def bucket(issue_type: str | None) -> CategoryStats:
+        key = issue_type or "none_clean"
+        if key not in stats:
+            stats[key] = CategoryStats(issue_type=key, total=0, matched=0, correct=0)
+        return stats[key]
+
+    for ground_truth, predicted_claims in cases:
+        matches, _ = match_claims(ground_truth["claims"], predicted_claims or [])
+        match_by_id = {m.ground_truth_claim_id: m for m in matches}
+        for claim in ground_truth["claims"]:
+            b = bucket(claim.get("issue_type"))
+            b.total += 1
+            m = match_by_id[claim["claim_id"]]
+            if m.predicted_claim is not None:
+                b.matched += 1
+                if m.status_correct:
+                    b.correct += 1
+
+    return stats
