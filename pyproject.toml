@@ -41,6 +41,16 @@ dev = [
                      # package from httpx2 above, needed for route tests.
 ]
 
+[tool.pytest.ini_options]
+# Found by CI, not assumed: `pytest tests/` (the bare console script, as
+# CI's workflow runs it) does not add the repo root to sys.path the way
+# `python -m pytest` does — every local run throughout this project used
+# the latter, which silently masked that tests/ and eval/ (deliberately
+# not pip-installed — see [tool.setuptools.packages.find] below) were
+# only ever importable by accident of invocation style. This makes it
+# explicit and invocation-independent instead.
+pythonpath = ["."]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
