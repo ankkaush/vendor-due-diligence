@@ -35,6 +35,14 @@ These are deliberate scope decisions, not gaps discovered late:
   already-executed, already-paid real Phase 7/8 output, not a live run.
 - **Not multi-tenant, not a SaaS product.** No billing, no account
   management, no product roadmap.
+- **Not actually deployed yet (as of Phase 12).** The Supabase database
+  is real (project `vendor-due-diligence`, created 2026-09-25 —
+  `deployment.md`), but the Render half of deployment requires an
+  account I have no access to and can't create — a genuine agent
+  constraint, not a technical one. `render.yaml`, the health check,
+  CORS, security headers, and auth rate limiting are all built and
+  tested; `deployment.md`'s runbook is exactly what's left for the
+  account owner to execute.
 - **The multi-agent architecture may not be justified by the evidence.**
   Gate 6 is a real test, not a formality — if the strong single-agent
   baseline performs comparably, the shipped architecture reflects that

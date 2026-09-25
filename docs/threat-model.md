@@ -1,12 +1,11 @@
 # Threat Model
 
-**Status: Phase 2's specification is implemented through Phase 11 — see
-section 7 for the row-by-row test audit executed 2026-09-24 and section
-8 for Phase 11's CI/CD delivery, including what's genuinely still open
-and which later phase (12) it's scoped to. Threat modeling done after
-the code exists is theater — this file was written before any
-application code, and every phase since has been checked against it,
-not the other way around.**
+**Status: Phase 2's specification is implemented through Phase 12 — see
+section 7 for the row-by-row test audit (updated 2026-09-25 for Phase
+12's rate-limiting close) and section 8 for Phase 11's CI/CD delivery.
+Threat modeling done after the code exists is theater — this file was
+written before any application code, and every phase since has been
+checked against it, not the other way around.**
 
 ## 1. System overview and trust zones
 
@@ -182,22 +181,23 @@ not silently marked done.
 | 3.5.4 | Concurrent writes corrupting case state | `tests/test_app/test_state_machine.py::test_concurrent_duplicate_transition_attempts_exactly_one_wins`, `tests/test_db/test_schema_constraints.py::test_duplicate_non_terminal_agent_run_is_rejected` | Covered |
 | 3.6.1 | Stored XSS | `tests/test_web/test_routes.py::test_document_derived_content_is_escaped_not_rendered_raw` | Covered |
 | 3.6.2 | CSRF | `::test_review_submission_requires_csrf_token` | Covered |
-| 3.6.3 | Credential brute-forcing | — | **Not implemented.** Explicitly scoped to Phase 12 (`deployment.md`'s "required production hygiene"); recorded here rather than silently left off this table |
+| 3.6.3 | Credential brute-forcing | `tests/test_web/test_ratelimit.py` (all five tests) **(new, Phase 12)** | Covered — in-memory, per-IP, failed-401-attempt limiting (`app/web/ratelimit.py`), consistent with the single-instance/no-Redis constraint |
 | 3.6.4 | Direct document access bypassing auth | `tests/test_web/test_routes.py::test_no_separate_unauthenticated_document_route_exists` **(new)** | Covered |
 | 3.7.1 | Full document text/secrets in traces | `tests/test_app/test_observability.py::test_redact_for_trace_truncates_and_hashes_the_full_text`, `::test_traced_client_records_a_generation_with_redacted_input_and_usage` **(new)** | Covered |
 | 3.7.2 | Silent audit trail tampering | `tests/test_db/test_schema_constraints.py::test_append_only_tables_reject_update`, `::test_append_only_tables_reject_delete` | Covered |
 | 3.7.3 | CI/CD secret exposure | `.github/workflows/ci.yml` (Phase 11) | Covered structurally — the workflow references no secret at all (see section 8), so there's nothing for a mistake to expose |
 
-**Honest summary, counted against all 30 rows above: 21 fully covered by
-a named test or, for 3.7.3, a structural workflow guarantee; 5 partially
-covered, with the uncovered remainder honestly scoped to a specific
-later phase in the same row rather than glossed over (upload-route auth,
-parser error client-facing behavior, live context-fetch orchestration,
-per-case cost enforcement, rate limiting's idempotency half); 2 not
-applicable to a code test suite at all (inherited TLS, DB-role
-operational practice); 2 explicitly deferred to Phase 12
-(`deployment.md` already scoped them there before this phase started).
-Nothing here is marked covered that isn't.**
+**Honest summary, counted against all 30 rows above: 22 fully covered by
+a named test or structural guarantee (3.6.3's auth rate limiting closed
+in Phase 12); 5 partially covered, with the uncovered remainder honestly
+scoped to a specific later phase in the same row rather than glossed
+over (upload-route auth, upload-endpoint rate limiting, parser error
+client-facing behavior, live context-fetch orchestration, per-case cost
+enforcement); 2 not applicable to a code test suite at all (inherited
+TLS, DB-role operational practice); 1 still explicitly deferred to
+Phase 12 (DB connection pooling — `deployment.md`'s runbook covers what
+Phase 12 actually executed; pooling wasn't part of that). Nothing here
+is marked covered that isn't.**
 
 ## 8. Phase 11 — CI/CD (executed 2026-09-24)
 

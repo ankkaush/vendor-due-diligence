@@ -101,6 +101,18 @@ def test_case_detail_404_for_unknown_case(client):
     assert response.status_code == 404
 
 
+# --- Health check (Phase 12) ------------------------------------------
+
+
+def test_healthz_requires_no_auth_and_reports_healthy(client):
+    """deployment.md: infrastructure hitting the health check shouldn't
+    need reviewer credentials — and a real DB round-trip, not a bare
+    200, is what makes this a meaningful deploy/rollback signal."""
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
+
+
 # --- XSS / autoescaping --------------------------------------------------
 
 
@@ -113,7 +125,9 @@ def test_no_separate_unauthenticated_document_route_exists():
     route pattern exists at all — not a claim checked by reading the
     code, but an assertion against the actual registered routes."""
     paths = {r.path for r in router.routes}
-    assert paths == {"/", "/cases", "/cases/{case_id}", "/cases/{case_id}/review"}
+    assert paths == {
+        "/", "/healthz", "/cases", "/cases/{case_id}", "/cases/{case_id}/review",
+    }
     for path in paths:
         assert "document" not in path
         assert "file" not in path

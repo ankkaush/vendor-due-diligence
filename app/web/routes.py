@@ -14,8 +14,9 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.audit import record_event
@@ -30,6 +31,21 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(__file__.rsplit("/", 1)[0] + "/templates"))
 
 VALID_DECISIONS = {"approved", "rejected", "conditional", "needs_more_info"}
+
+
+@router.get("/healthz", include_in_schema=False)
+def healthz(db: Session = Depends(get_db)) -> JSONResponse:
+    """deployment.md's "required production hygiene" — Render's health
+    check hits this. Deliberately unauthenticated (a health check from
+    infrastructure shouldn't need reviewer credentials) and deliberately
+    a real DB round-trip, not a bare 200 — "the process is running" and
+    "the app can actually serve a request" are different claims, and
+    only the second one is useful for a deploy/rollback decision."""
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as exc:  # noqa: BLE001 - report unhealthy, don't crash the check itself
+        return JSONResponse({"status": "unhealthy", "error": str(exc)[:200]}, status_code=503)
+    return JSONResponse({"status": "healthy"})
 
 
 @router.get("/", include_in_schema=False)

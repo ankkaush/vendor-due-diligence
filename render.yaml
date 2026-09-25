@@ -1,0 +1,52 @@
+# Render Blueprint (Phase 11 CI stays GitHub Actions; this is deployment,
+# ADR-005/deployment.md). One service — no separate frontend deploy
+# (decision #4/#8): FastAPI serves the server-rendered Jinja2 UI
+# directly. Database is external Supabase Postgres, not Render's own
+# managed Postgres (ADR-005), so there is no `databases:` block here —
+# DATABASE_URL is supplied as a secret env var instead.
+#
+# Every envVar that holds a real credential is `sync: false` — Render
+# prompts for it once at Blueprint creation and stores it in its own
+# secret manager; nothing here is a literal secret value
+# (threat-model.md's CI/CD-secret-exposure discipline, extended to
+# deployment config).
+#
+# See docs/deployment.md for the full runbook: exactly what to paste
+# for each `sync: false` variable and where to get it.
+
+services:
+  - name: vendor-due-diligence
+    type: web
+    runtime: python
+    plan: free
+    region: ohio
+    branch: main
+    buildCommand: pip install -e .
+    # Migrations run against production on deploy (ADR-005), after the
+    # build and before the new version starts serving traffic.
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.web.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_BASE_URL
+        sync: false # the service's own https://....onrender.com URL — CORS is locked to exactly this
+      - key: DATABASE_URL
+        sync: false # Supabase connection string, postgresql+psycopg:// scheme — see docs/deployment.md
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: REVIEWER_USERNAME
+        sync: false
+      - key: REVIEWER_PASSWORD
+        sync: false
+      - key: APP_SECRET_KEY
+        generateValue: true # Render generates a random 256-bit value; CSRF tokens are signed with this
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false # optional — leave blank in Render's prompt to keep tracing a no-op
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
+      - key: LANGFUSE_HOST
+        value: https://cloud.langfuse.com
+      - key: SENTRY_DSN
+        sync: false # optional — leave blank to keep error tracking a no-op

@@ -27,9 +27,18 @@ client, no account required. **Phase 11 (CI/CD) is complete** —
 service container plus a migration up/down/up cycle on every push/PR,
 and the same pre-commit hooks (gitleaks included) run as their own job;
 no secret is referenced anywhere in the workflow, since nothing it runs
-ever needs one (ADR-009). 183 tests. $0.424 of $0.50 spent; no further
-real API spend is planned. No live upload-to-pipeline HTTP flow yet —
-see `docs/limitations.md`.**
+ever needs one (ADR-009). **Phase 12 (deployment) is split honestly
+across what I can and can't do**: the real Supabase database is created
+(project `vendor-due-diligence`, free tier, $0/month —
+[ADR-005](docs/decisions/ADR-005-deployment-target.md)'s execution
+note) and every piece of required production hygiene is built and
+tested (health check, CORS, security headers, auth rate limiting closing
+the one gap Phase 10 left open); [`render.yaml`](render.yaml) is ready
+to deploy, but I have no Render account access and can't create one —
+[`docs/deployment.md`](docs/deployment.md)'s runbook is exactly what's
+left for the account owner to run. 189 tests. $0.424 of $0.50 spent; no
+further real API spend is planned. No live upload-to-pipeline HTTP flow
+yet — see `docs/limitations.md`.**
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -97,7 +106,7 @@ cp .env.example .env   # then fill in real values — never commit .env
 
 docker compose up -d          # isolated local Postgres, port 5437
 alembic upgrade head          # apply the schema
-pytest tests/                 # 183 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation, web, security
+pytest tests/                 # 189 tests: schema, intake, parsing, state machine, agents, boundaries, reconciliation, web, security
 
 # Optional: seed a few real cases (from already-executed real API output,
 # zero new spend) so the review UI has something to show:

@@ -28,6 +28,12 @@ class Settings(BaseSettings):
 
     app_env: str = "development"
 
+    # Phase 12: the app's own public origin — CORS is locked to exactly
+    # this (deployment.md's "CORS locked to the app's own origin"), not
+    # a wildcard. Set to the real Render URL in production; the local
+    # default matches uvicorn's default local port.
+    app_base_url: str = "http://localhost:8000"
+
     # Optional — app.observability.py no-ops on every one of these unset.
     langfuse_public_key: str = ""
     langfuse_secret_key: str = ""

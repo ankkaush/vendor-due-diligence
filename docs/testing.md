@@ -2,14 +2,14 @@
 
 **Status: approved plan. Suites are built alongside the phases that produce
 the code they test — see the phase plan in `architecture.md`'s history /
-the blueprint discussion. 183 tests passing through Phase 10
+the blueprint discussion. 189 tests passing through Phase 12
 (`tests/test_db/` + `tests/test_app/` + `tests/test_agents/` +
 `tests/test_eval/` + `tests/test_web/`) — DB tests against a real local
 Postgres, agent tests against `FakeLLMClient` (zero real API calls,
 ADR-009), scoring tests against synthetic data, web route tests against
 a real FastAPI `TestClient` sharing the same transactional DB session.
 Every threat-model.md §3 row is checked against a real, named test —
-see its section 7 audit table. As of Phase 11, all 183 also run in CI
+see its section 7 audit table. As of Phase 11, all tests also run in CI
 (`.github/workflows/ci.yml`) against a real Postgres service container
 on every push and PR.**
 
@@ -263,3 +263,26 @@ deployment-time concerns neither built nor claimed to be. See
   container provisioned the same way CI's service container would be —
   never against the local dev database, which has real seeded Phase 9
   demo cases a `downgrade base` would have destroyed.
+
+## Delivered in Phase 12
+
+- **Failed-auth rate limiting, tested against a minimal isolated app,
+  not the full review UI**: `tests/test_web/test_ratelimit.py` drives
+  `AuthRateLimitMiddleware` directly — under the threshold isn't
+  throttled, over it gets a real 429, a valid reviewer making many
+  legitimate requests is never throttled regardless of volume, the
+  block lifts once the window elapses, and independent per-IP buckets
+  are checked at the unit level (`TestClient` can't present two
+  distinct client IPs, so this is verified against the middleware's own
+  state directly rather than skipped).
+- **The health check is a real DB round-trip, checked as one**:
+  `test_healthz_requires_no_auth_and_reports_healthy` asserts both that
+  `/healthz` needs no reviewer credentials (infrastructure hitting it
+  shouldn't have to authenticate) and that it returns a real `"healthy"`
+  status backed by an actual `SELECT 1` against the database, not a
+  bare 200 that would stay green even if the DB connection were dead.
+- **The Phase 10 route-table structural test caught its own drift**:
+  adding `/healthz` required updating
+  `test_no_separate_unauthenticated_document_route_exists`'s expected
+  route set — exactly the kind of change a hardcoded set is supposed to
+  force a human (or agent) to notice and justify, not silently pass.
