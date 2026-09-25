@@ -1,12 +1,15 @@
 # Architecture
 
-**Status: approved design (Gate 1 closed). Implemented through Phase 9 —
-data model, intake/validation/parsing/classification/state machine
-(Phase 5), single-agent baseline and independent investigators (Phase
-6/7), reconciliation (Phase 8, real-run-fixed and Gate 6 cleared), and
-the human review UI (Phase 9) — see phase status in README. No live
-upload-to-review HTTP pipeline yet; Phase 9's UI operates on cases
-seeded from already-executed real output (`limitations.md`).
+**Status: approved design (Gate 1 closed), implemented through Phase
+13 (final) — data model, intake/validation/parsing/classification/state
+machine (Phase 5), single-agent baseline and independent investigators
+(Phase 6/7), reconciliation (Phase 8, real-run-fixed and Gate 6
+cleared), the human review UI (Phase 9), security test audit +
+observability (Phase 10), CI/CD (Phase 11), and deployment (Phase 12 —
+Supabase real, Render blocked on an infra mismatch, not code). See
+README for the current one-glance status and `limitations.md` for the
+full honest accounting. No live upload-to-review HTTP pipeline exists;
+every UI-visible case is seeded from already-executed real output.
 
 ## Problem
 

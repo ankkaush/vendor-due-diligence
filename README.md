@@ -1,44 +1,22 @@
 # Vendor Due-Diligence & Evidence Verification
 
-**Status: early build — Phases 6, 7, and 8 complete with real executed
-evaluation runs (baseline vs. raw multi-agent vs. reconciled — see
-`docs/evaluation.md`). Gate 6's first real check found a genuine
-regression, traced to two specific reconciliation-layer defects (not a
-flaw in the core independent-investigation hypothesis); both were
-fixed, fake-tested, and re-run for real. Gate 6 is now judged
-**cleared** against its pre-registered threshold (ADR-006) — cross-domain
-conflict recovery is a decisive 66.7%→100%, and the secondary
-regression tolerance now passes with margin (+1.3pt vs. a 5pt limit) —
-with an explicit experimental-integrity caveat, since the two cases
-that diagnosed the bugs also informed the fix: see
-[ADR-006](docs/decisions/ADR-006-gate6-methodology.md)'s "Gate 6
-decision, updated 2026-09-24 after the fix rerun" section for the full,
-honest analysis of what is and isn't independent confirmation. **Phase 9
-(human review UI) is built and tested** — FastAPI + Jinja2, single-reviewer
-auth, CSRF-protected review submission, real cases seeded from
-already-executed real output (zero new spend). **Phase 10 (security test
-audit + observability) is complete** — every `threat-model.md` §3 row is
-checked against a real test (section 7's audit table), seven genuine
-gaps found and closed, three honestly recorded as open and deferred to
-Phase 11/12 where they were always scoped to belong; Langfuse/Sentry
-integration (`app/observability.py`) is built and tested against a fake
-client, no account required. **Phase 11 (CI/CD) is complete** —
-`.github/workflows/ci.yml` runs the full suite against a real Postgres
-service container plus a migration up/down/up cycle on every push/PR,
-and the same pre-commit hooks (gitleaks included) run as their own job;
-no secret is referenced anywhere in the workflow, since nothing it runs
-ever needs one (ADR-009). **Phase 12 (deployment) is split honestly
-across what I can and can't do**: the real Supabase database is created
-(project `vendor-due-diligence`, free tier, $0/month —
-[ADR-005](docs/decisions/ADR-005-deployment-target.md)'s execution
-note) and every piece of required production hygiene is built and
-tested (health check, CORS, security headers, auth rate limiting closing
-the one gap Phase 10 left open); [`render.yaml`](render.yaml) is ready
-to deploy, but I have no Render account access and can't create one —
-[`docs/deployment.md`](docs/deployment.md)'s runbook is exactly what's
-left for the account owner to run. 189 tests. $0.424 of $0.50 spent; no
-further real API spend is planned. No live upload-to-pipeline HTTP flow
-yet — see `docs/limitations.md`.**
+**Status (2026-09-25): all 13 planned phases complete or honestly
+closed out. Gate 6 — the core technical thesis — is cleared by real,
+re-verified evidence. The one thing not true yet is a live deployed
+URL. Full account: [`docs/limitations.md`](docs/limitations.md).**
+
+| | |
+|---|---|
+| **Core hypothesis (Gate 6)** | **Cleared.** Independent investigation + reconciliation recovers `cross_domain_conflict` decisively (66.7%→100%) within cost/latency budget — found regressed on the first real run, root-caused to two reconciliation-layer bugs, fixed, re-verified. [ADR-006](docs/decisions/ADR-006-gate6-methodology.md) |
+| **Real API spend** | $0.424 of a hard $0.50 ceiling (ADR-009), across 6 real runs. Never exceeded. |
+| **Tests** | 189 passing, real Postgres + `FakeLLMClient` (zero-cost), all in CI |
+| **Human review UI** | Built, tested, working — real cases, real decisions, real DB |
+| **Security** | Every `threat-model.md` §3 row checked against a named test |
+| **CI/CD** | GitHub Actions, green, no secrets needed |
+| **Deployment** | **Not live.** Supabase DB is real; Render deploy attempted for real and currently blocked on an IPv4/IPv6 infrastructure mismatch, fix identified, not yet confirmed. [`docs/deployment.md`](docs/deployment.md) |
+| **Live upload → pipeline** | Not built — demo cases are seeded from already-executed real output, not a live run |
+
+Repo: [github.com/ankkaush/vendor-due-diligence](https://github.com/ankkaush/vendor-due-diligence) (public).
 
 A portfolio system that helps a human reviewer determine which vendor claims
 in a due-diligence evidence package (security questionnaire, SOC-style
@@ -74,9 +52,11 @@ and [ADR-006](docs/decisions/ADR-006-gate6-methodology.md)), not a foregone conc
 This is a solo AI/GenAI engineering portfolio project — built for learning,
 demonstrated engineering judgment, and interview discussion. It is
 deliberately **not** a SaaS product: no multi-tenancy, no billing, no
-product roadmap. It is one real, deployed automation, built with the same
+product roadmap. It is one real automation, built with the same
 seriousness as a production system, that a company could plausibly plug into
-an internal vendor-review workflow.
+an internal vendor-review workflow — real evaluated model behavior, real
+tests, real CI, a real (if not yet live) deployment target, not a demo
+that only works in a notebook.
 
 ## Documentation
 

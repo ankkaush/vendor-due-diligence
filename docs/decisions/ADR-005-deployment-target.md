@@ -46,10 +46,16 @@ head` on first deploy, not as a separate manual step (`preDeployCommand`
 would be cleaner but Render's free tier rejects it — hit live during
 Blueprint creation, corrected the same day).
 
-The Render half was not executed by me — I have no Render account access and
-cannot create third-party accounts on the user's behalf (an agent
-constraint, not a technical one, distinct from anything this ADR
-decided). `render.yaml` and every piece of required production hygiene
+The Render half was attempted for real, with the account owner driving
+account creation and Blueprint setup (I have no Render account access
+and cannot create one myself — an agent constraint, not a technical
+one) while I walked through it live. The first deploy **failed**:
+Supabase's direct-connection host resolved to an IPv6 address, which
+Render's build environment cannot route to. The fix — Supabase's
+IPv4-reachable session pooler — was identified and documented
+(`deployment.md`'s runbook, step 4), but not yet confirmed working; the
+account owner chose to pause there rather than complete it in this
+session. `render.yaml` and every piece of required production hygiene
 (health check, CORS, security headers, auth rate limiting) are built
-and tested; `deployment.md`'s runbook is what's left for the account
-owner to execute. See `limitations.md`.
+and tested; nothing about the failure implicates the application code.
+See `limitations.md` for the unvarnished summary.
