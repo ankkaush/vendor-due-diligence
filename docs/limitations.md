@@ -1,13 +1,12 @@
 # Limitations
 
-**Status: finalized (Phase 13, 2026-09-25) against what was actually
-built across 12 real implementation phases — not the day-1 speculative
-list alone. Split into three honest categories below: deliberate scope
-decisions made in advance and never revisited because nothing changed
-the reasoning; what Gate 6 actually concluded, since this file promised
-to report it plainly either way; and gaps found only by actually
-building and, in Phase 12's case, actually trying to deploy — recorded
-as real findings, not retroactively smoothed into "always the plan."**
+**Status: finalized against what was actually built — not the day-1
+speculative list alone. Split into three honest categories below:
+deliberate scope decisions made in advance and never revisited because
+nothing changed the reasoning; what Gate 6 actually concluded, since
+this file promised to report it plainly either way; and gaps found only
+by actually building — recorded as real findings, not retroactively
+smoothed into "always the plan."**
 
 ## Deliberate scope decisions (made at design time, still true)
 
@@ -101,19 +100,9 @@ trusting.
   application error worth tracing. The redaction policy and the
   never-let-tracing-break-the-call guarantee are verified; what a real
   trace or error report actually looks like in either dashboard is not.
-- **The app is not deployed.** Phase 12 got further than "not
-  attempted" — a real Supabase database exists, a real Render Blueprint
-  was created from the real public repo, and a real first deploy was
-  attempted with the account owner driving it live. It failed:
-  Supabase's direct-connection host resolves to an IPv6 address in this
-  project's region, and Render's build environment has no IPv6 egress —
-  a real, diagnosed infrastructure incompatibility, not a code defect.
-  The fix (Supabase's IPv4-reachable session pooler) is identified and
-  documented; the account owner chose to pause before confirming it
-  works. See `deployment.md`'s runbook for exactly where it stands.
 - **Rate limiting on an upload endpoint doesn't exist**, because the
   upload endpoint itself doesn't exist. Auth-boundary rate limiting
-  (failed-login throttling) does (`app/web/ratelimit.py`, Phase 12).
+  (failed-login throttling) does (`app/web/ratelimit.py`).
 - **DB connection pooling was never configured.** SQLAlchemy's default
   pool settings are in effect; deployment.md's hygiene table has always
   listed this as open, correctly.

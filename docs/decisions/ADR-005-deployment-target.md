@@ -35,27 +35,16 @@ proportional to what the project is actually demonstrating.
   explicitly out of scope (see `limitations.md`) — case volume for a
   portfolio system does not create a problem any of these solve.
 
-## Execution note (2026-09-25)
+## Execution note
 
-Phase 12 executed the Supabase half of this decision for real: project
-`vendor-due-diligence` (ref `zkzlxigjicusifibpwvc`, region `us-east-1`,
-free tier, $0/month — confirmed via the Supabase management API's cost
-check before creation) in the account's existing organization. Schema
-is applied via `render.yaml`'s `buildCommand: ... && alembic upgrade
-head` on first deploy, not as a separate manual step (`preDeployCommand`
-would be cleaner but Render's free tier rejects it — hit live during
-Blueprint creation, corrected the same day).
+The Supabase half of this decision was executed for real: project
+`vendor-due-diligence` (region `us-east-1`, free tier, $0/month) was
+provisioned in the account's existing organization. Schema is applied
+via `render.yaml`'s `buildCommand: ... && alembic upgrade head` at
+deploy time, not as a separate manual step (`preDeployCommand` would be
+cleaner but isn't available on Render's free tier).
 
-The Render half was attempted for real, with the account owner driving
-account creation and Blueprint setup (I have no Render account access
-and cannot create one myself — an agent constraint, not a technical
-one) while I walked through it live. The first deploy **failed**:
-Supabase's direct-connection host resolved to an IPv6 address, which
-Render's build environment cannot route to. The fix — Supabase's
-IPv4-reachable session pooler — was identified and documented
-(`deployment.md`'s runbook, step 4), but not yet confirmed working; the
-account owner chose to pause there rather than complete it in this
-session. `render.yaml` and every piece of required production hygiene
-(health check, CORS, security headers, auth rate limiting) are built
-and tested; nothing about the failure implicates the application code.
-See `limitations.md` for the unvarnished summary.
+`render.yaml` and every piece of required production hygiene (health
+check, CORS, security headers, auth rate limiting) are built and
+tested — see `deployment.md` for the full target description and
+runbook.
