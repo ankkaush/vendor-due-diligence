@@ -30,7 +30,7 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0  # gitleaks scans history-aware; a shallow clone would miss it
       - uses: actions/setup-python@v5
@@ -59,7 +59,7 @@ jobs:
       # not a real password anywhere, just this container's fixed login.
       DATABASE_URL: "postgresql+psycopg://vendor_dd:local_dev_only_not_a_real_secret@localhost:5432/vendor_dd"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
