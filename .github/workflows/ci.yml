@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0  # gitleaks scans history-aware; a shallow clone would miss it
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - uses: pre-commit/action@v3.0.1
@@ -60,7 +60,7 @@ jobs:
       DATABASE_URL: "postgresql+psycopg://vendor_dd:local_dev_only_not_a_real_secret@localhost:5432/vendor_dd"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
