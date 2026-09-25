@@ -41,10 +41,12 @@ Phase 12 executed the Supabase half of this decision for real: project
 `vendor-due-diligence` (ref `zkzlxigjicusifibpwvc`, region `us-east-1`,
 free tier, $0/month — confirmed via the Supabase management API's cost
 check before creation) in the account's existing organization. Schema
-is applied via `render.yaml`'s `preDeployCommand: alembic upgrade head`
-on first deploy, not as a separate manual step.
+is applied via `render.yaml`'s `buildCommand: ... && alembic upgrade
+head` on first deploy, not as a separate manual step (`preDeployCommand`
+would be cleaner but Render's free tier rejects it — hit live during
+Blueprint creation, corrected the same day).
 
-The Render half was not executed — I have no Render account access and
+The Render half was not executed by me — I have no Render account access and
 cannot create third-party accounts on the user's behalf (an agent
 constraint, not a technical one, distinct from anything this ADR
 decided). `render.yaml` and every piece of required production hygiene

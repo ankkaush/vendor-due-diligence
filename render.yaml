@@ -21,10 +21,13 @@ services:
     plan: free
     region: ohio
     branch: main
-    buildCommand: pip install -e .
-    # Migrations run against production on deploy (ADR-005), after the
-    # build and before the new version starts serving traffic.
-    preDeployCommand: alembic upgrade head
+    # preDeployCommand would be the cleaner place for this (runs after
+    # build, before the new version serves traffic) but Render's free
+    # tier doesn't support it — confirmed live at Blueprint creation,
+    # not assumed from docs. Folded into buildCommand instead, which
+    # still runs once per deploy, not on every restart; `alembic upgrade
+    # head` is idempotent, so a no-op when already current is harmless.
+    buildCommand: pip install -e . && alembic upgrade head
     startCommand: uvicorn app.web.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
     envVars:

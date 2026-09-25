@@ -17,9 +17,14 @@ technical one). The runbook below is exactly what's left to run.**
   `vendor-due-diligence`, ref `zkzlxigjicusifibpwvc`, region `us-east-1`,
   free tier ($0/month), in the same Supabase organization as the
   account's other projects. Schema not yet applied — that happens via
-  `preDeployCommand: alembic upgrade head` on first deploy (below), not
-  as a separate manual step, so `alembic_version` stays the single
-  source of truth for what's been applied.
+  `buildCommand: pip install -e . && alembic upgrade head` on first
+  deploy (below), not as a separate manual step, so `alembic_version`
+  stays the single source of truth for what's been applied.
+  `preDeployCommand` would be the cleaner place for this — it runs after
+  the build, before the new version serves traffic — but Render's free
+  tier rejects it outright ("pre-deploy command is not supported for
+  free tier services"), a real platform constraint hit live at Blueprint
+  creation, not found by reading docs in advance.
 - **Migrations:** Alembic, run against production on deploy.
 
 ## Runbook: what's left to do (Render account owner only)
@@ -51,7 +56,7 @@ technical one). The runbook below is exactly what's left to run.**
 
    `APP_SECRET_KEY` is not prompted for — `generateValue: true` has
    Render generate a real random 256-bit value itself.
-4. **Deploy.** Render runs `pip install -e .`, then
+4. **Deploy.** Render's build step runs `pip install -e .` then
    `alembic upgrade head` against the real Supabase database (this is
    the first time the schema is actually applied there), then starts
    `uvicorn`.
